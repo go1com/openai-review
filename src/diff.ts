@@ -2,7 +2,7 @@ import * as core from '@actions/core';
 import * as exec from '@actions/exec';
 
 export const showColorDiff = async (base: string, head: string) =>
-  await exec.exec('git', ['diff', '--no-color', base, head], {
+  await exec.exec('git', ['fetch', 'origin'], {
     ignoreReturnCode: true,
   })
 
