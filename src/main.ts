@@ -1,25 +1,23 @@
-const { OpenAIClient, AzureKeyCredential } = require("@azure/openai");
 import * as core from "@actions/core";
+import { computeDiff, showColorDiff } from './diff';
+import { AzureOpenAIExec } from './azure-openai';
 
-async function main() {
-  const key = core.getInput("azure-openai-api-key");
-  const endpoint = core.getInput("azure-openai-endpoint");
-  const client = new OpenAIClient(endpoint, new AzureKeyCredential(key));
+const main = async (): Promise<void> => {
+  core.startGroup('diff');
+  await showColorDiff(core.getInput("base"), core.getInput("head"));
+  core.endGroup();
 
-  core.debug(`azure-openai-prompt: ${core.getInput("azure-openai-prompt")}`);
+  const diffs = await computeDiff(core.getInput("base"), core.getInput("head"));
+  if (diffs.length === 0) {
+    core.info("No diff");
+    core.setOutput("text", "No diff");
+  }
 
-  const { choices } = await client.getCompletions(
-    core.getInput("model"),
-    core.getInput("openai-prompt"),
-    {
-      maxTokens: 256,
-    },
-  );
-  const completion = choices[0].text;
+  const text = await AzureOpenAIExec("Write a description for this git diff: \n ${diffs.map(diff => diff.content).join('\n')}");
   // The output of this action is the text from OpenAI trimmed and escaped
   core.setOutput(
     "text",
-    completion.trim().replace(/(\r\n|\n|\r|'|"|`|)/gm, ""),
+    text.replace(/(\r\n|\n|\r|'|"|`|)/gm, ""),
   );
 }
 
@@ -27,4 +25,5 @@ main().catch((err) => {
   if (err instanceof Error) {
     core.setFailed(err.message);
   }
+  console.error(err);
 });

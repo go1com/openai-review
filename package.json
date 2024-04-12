@@ -22,6 +22,7 @@
   "homepage": "https://github.com/go1com/openai-review#readme",
   "dependencies": {
     "@actions/core": "^1.10.1",
+    "@actions/exec": "^1.1.1",
     "@actions/github": "^6.0.0",
     "@azure/openai": "^1.0.0-beta.12"
   },

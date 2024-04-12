@@ -5,19 +5,26 @@ branding:
   icon: check-square
   color: black
 inputs:
+  base:
+    description: Path(s) of base (multiline)
+    required: true
+  head:
+    description: Path(s) of head (multiline)
+    required: true
   azure-openai-api-key:
     description: 'Your Azure OpenAI api key'
     required: true
   azure-openai-endpoint:
     description: 'Your Azure OpenAI api endpoint'
     required: true
-  azure-openai-prompt:
-    description: 'The OpenAI prompt'
-    require: true
   model:
     description: 'The model to use'
     required: false
     default: 'gpt-4'
+  token:
+    description: GitHub token to post a comment
+    required: true
+    default: ${{ github.token }}
 runs:
   using: 'node20'
   main: 'dist/index.js'
