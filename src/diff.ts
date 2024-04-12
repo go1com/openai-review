@@ -2,7 +2,7 @@ import * as core from '@actions/core';
 import * as exec from '@actions/exec';
 
 export const showColorDiff = async (base: string, head: string) =>
-  await exec.exec('git', ['diff', '--no-index', '--color', base, head], {
+  await exec.exec('git', ['diff', '--no-color', base, head], {
     ignoreReturnCode: true,
   })
 
@@ -13,7 +13,7 @@ export type Diff = {
 }
 
 export const computeDiff = async (base: string, head: string): Promise<Diff[]> => {
-  const { exitCode, stdout } = await exec.getExecOutput('git', ['diff', '--no-index', '--no-color', base, head], {
+  const { exitCode, stdout } = await exec.getExecOutput('git', ['diff', '--no-color', base, head], {
     ignoreReturnCode: true,
     silent: true,
   })
