@@ -1,0 +1,37 @@
+{
+  "name": "openai-review",
+  "version": "1.0.0",
+  "description": "Use Azure OpenAI to generate messages",
+  "main": "src/main.ts",
+  "scripts": {
+    "build": "tsc",
+    "format": "prettier --write **/*.ts",
+    "format-check": "prettier --check **/*.ts",
+    "lint": "eslint src/**/*.ts",
+    "pack": "ncc build src/main.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/go1com/openai-review.git"
+  },
+  "author": "sanglt",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/go1com/openai-review/issues"
+  },
+  "homepage": "https://github.com/go1com/openai-review#readme",
+  "dependencies": {
+    "@actions/core": "^1.10.1",
+    "@actions/github": "^6.0.0",
+    "@azure/openai": "^1.0.0-beta.12"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^7.6.0",
+    "@typescript-eslint/parser": "^7.6.0",
+    "@vercel/ncc": "^0.38.1",
+    "eslint": "^8.57.0",
+    "jest": "^29.7.0",
+    "prettier": "^3.2.5",
+    "typescript": "^5.4.5"
+  }
+}

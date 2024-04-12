@@ -1,0 +1,23 @@
+name: "OpenAI Review"
+description: "Use Azure OpenAI to generate messages"
+author: go1com
+branding:
+  icon: check-square
+  color: black
+inputs:
+  azure-openai-api-key:
+    description: 'Your Azure OpenAI api key'
+    required: true
+  azure-openai-endpoint:
+    description: 'Your Azure OpenAI api endpoint'
+    required: true
+  azure-openai-prompt:
+    description: 'The OpenAI prompt'
+    require: true
+  model:
+    description: 'The model to use'
+    required: false
+    default: 'gpt-4'
+runs:
+  using: 'node20'
+  main: 'dist/index.js'
