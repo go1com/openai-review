@@ -5,9 +5,6 @@ branding:
   icon: check-square
   color: black
 inputs:
-  diff:
-    description: Git diff (s) of base (multiline)
-    required: true
   azure-openai-api-key:
     description: 'Your Azure OpenAI api key'
     required: true
