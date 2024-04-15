@@ -48,7 +48,13 @@ const main = async (): Promise<void> => {
   //   )
   // }
 
-  const text = await AzureOpenAIExec(`Write a description for this git diff: \n ${response.data}`);
+  const prompt =
+    `You are a bot explains the changes from the result of
+    ${response.data}
+    that user given. comment message should be a multiple lines based on the given git diff changes without mentioning itself`;
+
+  // const text = await AzureOpenAIExec(`Write a description for this git diff: \n ${response.data}`);
+  const text = await AzureOpenAIExec(prompt);
   // The output of this action is the text from OpenAI trimmed and escaped
   core.setOutput(
     "text",
