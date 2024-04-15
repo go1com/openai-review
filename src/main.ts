@@ -55,7 +55,7 @@ const main = async (): Promise<void> => {
     text.replace(/(\r\n|\n|\r|'|"|`|)/gm, ""),
   );
 
-  if (core.getInput("bot_comment", { required: false }) === "true") {
+  if (core.getInput("bot-comment", { required: false }) === "true") {
     // 1. Retrieve existing bot comments for the PR
     const { data: comments } = await octokit.rest.issues.listComments({
       owner: context.repo.owner,
@@ -68,9 +68,10 @@ const main = async (): Promise<void> => {
     // 2. Prepare format of the comment
     const output = `#### Go1 OpenAI Bot Review 🖌
 
-          ${text}
+${text}
 
-          *Pusher: @${context.actor}, Action: \`${context.eventName}\`, Workflow: \`${context.workflow}\`*`;
+*Pusher: @${context.actor}, Action: \`${context.eventName}\`, Workflow: \`${context.workflow}\`*
+`;
 
     // 3. If we have a comment, update it, otherwise create a new one
     if (botComment) {

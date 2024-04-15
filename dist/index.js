@@ -57099,7 +57099,7 @@ const main = async () => {
     const text = await (0, azure_openai_1.AzureOpenAIExec)(`Write a description for this git diff: \n ${response.data}`);
     // The output of this action is the text from OpenAI trimmed and escaped
     core.setOutput("text", text.replace(/(\r\n|\n|\r|'|"|`|)/gm, ""));
-    if (core.getInput("bot_comment", { required: false }) === "true") {
+    if (core.getInput("bot-comment", { required: false }) === "true") {
         // 1. Retrieve existing bot comments for the PR
         const { data: comments } = await octokit.rest.issues.listComments({
             owner: github_1.context.repo.owner,
@@ -57112,9 +57112,10 @@ const main = async () => {
         // 2. Prepare format of the comment
         const output = `#### Go1 OpenAI Bot Review 🖌
 
-          ${text}
+${text}
 
-          *Pusher: @${github_1.context.actor}, Action: \`${github_1.context.eventName}\`, Workflow: \`${github_1.context.workflow}\`*`;
+*Pusher: @${github_1.context.actor}, Action: \`${github_1.context.eventName}\`, Workflow: \`${github_1.context.workflow}\`*
+`;
         // 3. If we have a comment, update it, otherwise create a new one
         if (botComment) {
             octokit.rest.issues.updateComment({
