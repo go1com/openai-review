@@ -57099,6 +57099,40 @@ const main = async () => {
     const text = await (0, azure_openai_1.AzureOpenAIExec)(`Write a description for this git diff: \n ${response.data}`);
     // The output of this action is the text from OpenAI trimmed and escaped
     core.setOutput("text", text.replace(/(\r\n|\n|\r|'|"|`|)/gm, ""));
+    if (core.getInput("bot_comment", { required: false }) === "true") {
+        // 1. Retrieve existing bot comments for the PR
+        const { data: comments } = await octokit.rest.issues.listComments({
+            owner: github_1.context.repo.owner,
+            repo: github_1.context.repo.repo,
+            issue_number: github_1.context.issue.number,
+        });
+        const botComment = comments.find(comment => {
+            return comment.user?.type === 'Bot' && comment.body?.includes('Go1 OpenAI Bot Review');
+        });
+        // 2. Prepare format of the comment
+        const output = `#### Go1 OpenAI Bot Review 🖌
+
+          ${text}
+
+          *Pusher: @${github_1.context.actor}, Action: \`${github_1.context.eventName}\`, Workflow: \`${github_1.context.workflow}\`*`;
+        // 3. If we have a comment, update it, otherwise create a new one
+        if (botComment) {
+            octokit.rest.issues.updateComment({
+                owner: github_1.context.repo.owner,
+                repo: github_1.context.repo.repo,
+                comment_id: botComment.id,
+                body: output
+            });
+        }
+        else {
+            octokit.rest.issues.createComment({
+                issue_number: github_1.context.issue.number,
+                owner: github_1.context.repo.owner,
+                repo: github_1.context.repo.repo,
+                body: output
+            });
+        }
+    }
 };
 main().catch((err) => {
     if (err instanceof Error) {
