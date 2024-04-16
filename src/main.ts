@@ -39,7 +39,7 @@ const main = async (): Promise<void> => {
       "Please submit an issue on this action's GitHub repo."
     )
   }
-
+  // @todo
   // Ensure that payload sent to OpenAI is not too big.
   // if (response.data.length > 2048) {
   //   core.setFailed(
@@ -51,7 +51,7 @@ const main = async (): Promise<void> => {
   const prompt =
     `You are a bot explains the changes from the result of
     ${response.data}
-    that user given. comment message should be a multiple lines based on the given git diff changes without mentioning itself`;
+    that user given. You should separate each big changes into bullet points or numbered points based on the given git diff changes without mentioning itself`;
 
   // const text = await AzureOpenAIExec(`Write a description for this git diff: \n ${response.data}`);
   const text = await AzureOpenAIExec(prompt);
