@@ -57089,6 +57089,7 @@ const main = async () => {
         core.setFailed(`The GitHub API for comparing the base and head commits for this ${github_1.context.eventName} event returned ${response.status}, expected 200. ` +
             "Please submit an issue on this action's GitHub repo.");
     }
+    // @todo
     // Ensure that payload sent to OpenAI is not too big.
     // if (response.data.length > 2048) {
     //   core.setFailed(
@@ -57096,7 +57097,11 @@ const main = async () => {
     //     "Please submit an issue on this action's GitHub repo."
     //   )
     // }
-    const text = await (0, azure_openai_1.AzureOpenAIExec)(`Write a description for this git diff: \n ${response.data}`);
+    const prompt = `You are a bot explains the changes from the result of
+    ${response.data}
+    that user given. You should separate each big changes into bullet points or numbered points based on the given git diff changes without mentioning itself`;
+    // const text = await AzureOpenAIExec(`Write a description for this git diff: \n ${response.data}`);
+    const text = await (0, azure_openai_1.AzureOpenAIExec)(prompt);
     // The output of this action is the text from OpenAI trimmed and escaped
     core.setOutput("text", text.replace(/(\r\n|\n|\r|'|"|`|)/gm, ""));
     if (core.getInput("bot-comment", { required: false }) === "true") {
