@@ -29,11 +29,12 @@ const main = async (): Promise<void> => {
     eventName,
     issue: { number: issueNumber },
     repo,
+    payload,
   } = context;
 
   if (!checkEventName(context, eventName)) return;
 
-  const pullRequestNumber = await getPullRequestNumber(context);
+  const pullRequestNumber = await getPullRequestNumber(payload);
   if (!pullRequestNumber) return;
 
   const { octokitPullRequest, octokitIssues } = createOctokitClient();

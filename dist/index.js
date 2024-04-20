@@ -57309,10 +57309,10 @@ const createOctokitClient = () => {
     };
 };
 const main = async () => {
-    const { eventName, issue: { number: issueNumber }, repo, } = github_1.context;
+    const { eventName, issue: { number: issueNumber }, repo, payload, } = github_1.context;
     if (!(0, event_name_check_1.checkEventName)(github_1.context, eventName))
         return;
-    const pullRequestNumber = await (0, pull_request_1.getPullRequestNumber)(github_1.context);
+    const pullRequestNumber = await (0, pull_request_1.getPullRequestNumber)(payload);
     if (!pullRequestNumber)
         return;
     const { octokitPullRequest, octokitIssues } = createOctokitClient();
