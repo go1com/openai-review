@@ -57062,64 +57062,68 @@ const core = __importStar(__nccwpck_require__(2186));
 const github_1 = __nccwpck_require__(5438);
 const action_1 = __nccwpck_require__(1231);
 const azure_openai_1 = __nccwpck_require__(4370);
+const createOctokitClient = () => {
+    const octokitClient = new action_1.Octokit();
+    return {
+        octokitPullRequest: octokitClient.rest.pulls,
+        octokitIssues: octokitClient.rest.issues,
+    };
+};
 const main = async () => {
-    const { eventName, payload: { pull_request }, } = github_1.context;
+    const { eventName, payload: { pull_request }, issue: { number: issueNumber }, } = github_1.context;
     if (github_1.context.eventName !== 'pull_request') {
         core.setFailed(`This action only supports Pull Requests, ${eventName} events are not supported. ` +
             "Please submit an issue on this action's GitHub repo if you believe this in correct.");
         return;
     }
     if (!pull_request?.number) {
-        core.setFailed("Can't get the pull request number" +
+        core.setFailed('Unable to retrieve the pull request number. Please ensure the pull request number is valid and try again.' +
             "Please submit an issue on this action's GitHub repo if you believe this in correct.");
         return;
     }
     const pullRequestNumber = pull_request.number;
-    // Create GitHub client with the API token.
-    const octokitClient = new action_1.Octokit();
-    const octokitPullRequest = octokitClient.rest.pulls;
-    const octokitIssues = octokitClient.rest.issues;
-    // Get the diff content of the PR.
-    const response = await octokitPullRequest.get({
+    const { octokitPullRequest, octokitIssues } = createOctokitClient();
+    octokitIssues.addAssignees({
+        ...github_1.context.repo,
+        issue_number: issueNumber,
+        assignees: ['go1com'],
+    });
+    /**
+     * @todo Add reviewers to the pull request.
+     */
+    octokitPullRequest.requestReviewers({
+        ...github_1.context.repo,
+        pull_number: pullRequestNumber,
+        reviewers: [],
+    });
+    const requestBaseParams = {
         ...github_1.context.repo,
         pull_number: pullRequestNumber,
         mediaType: {
             format: 'diff',
         },
-    });
-    const listOfFiles = await octokitPullRequest.listFiles({
-        ...github_1.context.repo,
-        pull_number: pullRequestNumber,
-        mediaType: {
-            format: 'diff',
-        },
-    });
-    // Ensure that the request was successful.
+    };
+    const response = await octokitPullRequest.get(requestBaseParams);
+    const listOfFiles = await octokitPullRequest.listFiles(requestBaseParams);
     if (response.status !== 200) {
         core.setFailed(`The GitHub API for comparing the base and head commits for this ${eventName} event returned ${response.status}, expected 200. ` +
             "Please submit an issue on this action's GitHub repo.");
     }
-    let numberOfLinesChanged = 0;
-    for (const file of listOfFiles.data) {
-        numberOfLinesChanged = file.changes + file.additions + file.deletions;
-    }
+    const numberOfLinesChanged = listOfFiles.data.reduce((total, file) => total + file.changes + file.additions + file.deletions, 0);
     if (numberOfLinesChanged > 2048) {
-        core.setFailed(`The commit have too much changes. ` +
+        core.setFailed(`The commit has too many changes. ` +
             "Please submit an issue on this action's GitHub repo.");
     }
     for (const file of listOfFiles.data) {
-        // const prompt = `Please list the new, deleted, or updated files in pull request #${pullRequestNumber}.
-        //   Changed files include: \n${listOfFiles.data.map(file => file.filename).join('\n')}.`;
-        const prompt = `Please review the file ${file.filename} in pull request #${pullRequestNumber} if it's newly added, deleted, or updated.`;
+        const prompt = `Please review the syntax of the file ${file.filename} in pull request #${pullRequestNumber} if it's newly added, deleted, or updated.`;
         const text = await (0, azure_openai_1.AzureOpenAIExec)(prompt);
-        // The output of this action is the text from OpenAI trimmed and escaped
-        core.setOutput('text', text.replace(/(\r\n|\n|\r|'|"|`|)/gm, ''));
+        // core.setOutput('text', text.replace(/(\r\n|\n|\r|'|"|`|)/gm, '')); // The output of this action is the text from OpenAI trimmed and escaped
         if (core.getInput('bot-comment', { required: false }) === 'true') {
             // 1. Retrieve existing bot comments for the PR
             const { data: comments } = await octokitIssues.listComments({
                 owner: github_1.context.repo.owner,
                 repo: github_1.context.repo.repo,
-                issue_number: github_1.context.issue.number,
+                issue_number: issueNumber,
             });
             const botComment = comments.find(comment => {
                 return (comment.user?.type === 'Bot' &&
@@ -57146,18 +57150,12 @@ const main = async () => {
             //     body: output,
             //   });
             // }
-            octokitPullRequest.createReview({
-                ...github_1.context.repo,
-                pull_number: pullRequestNumber,
+            octokitIssues.createComment({
+                issue_number: issueNumber,
+                owner: github_1.context.repo.owner,
+                repo: github_1.context.repo.repo,
                 body: output,
-                event: 'COMMENT',
             });
-            // octokitIssues.createComment({
-            //   issue_number: context.issue.number,
-            //   owner: context.repo.owner,
-            //   repo: context.repo.repo,
-            //   body: output,
-            // });
         }
     }
 };
