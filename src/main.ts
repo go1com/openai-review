@@ -6,6 +6,7 @@ import type { GetResponseTypeFromEndpointMethod } from '@octokit/types';
 import { checkEventName } from './helpers/event-name-check';
 import { getPullRequestNumber } from './helpers/pull-request';
 import { addAssignees } from './helpers/assignees';
+import { addReviewers } from './helpers/reviewers';
 
 const createOctokitClient = () => {
   const octokitClient = new Octokit();
@@ -34,11 +35,7 @@ const main = async (): Promise<void> => {
   /**
    * @todo Add reviewers to the pull request.
    */
-  octokitPullRequest.requestReviewers({
-    ...repo,
-    pull_number: pullRequestNumber,
-    reviewers: [],
-  });
+  addReviewers(context, octokitPullRequest, pullRequestNumber);
 
   const requestBaseParams = {
     ...repo,

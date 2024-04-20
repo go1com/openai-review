@@ -57184,6 +57184,25 @@ exports.addPullRequestDescription = addPullRequestDescription;
 
 /***/ }),
 
+/***/ 6277:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.addReviewers = void 0;
+const addReviewers = async (context, pullRequest, pullRequestNumber) => {
+    await pullRequest.requestReviewers({
+        ...context.repo,
+        pull_number: pullRequestNumber,
+        reviewers: [],
+    });
+};
+exports.addReviewers = addReviewers;
+
+
+/***/ }),
+
 /***/ 399:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -57220,6 +57239,7 @@ const azure_openai_1 = __nccwpck_require__(4370);
 const event_name_check_1 = __nccwpck_require__(4638);
 const pull_request_1 = __nccwpck_require__(5050);
 const assignees_1 = __nccwpck_require__(4950);
+const reviewers_1 = __nccwpck_require__(6277);
 const createOctokitClient = () => {
     const octokitClient = new action_1.Octokit();
     return {
@@ -57239,11 +57259,7 @@ const main = async () => {
     /**
      * @todo Add reviewers to the pull request.
      */
-    octokitPullRequest.requestReviewers({
-        ...repo,
-        pull_number: pullRequestNumber,
-        reviewers: [],
-    });
+    (0, reviewers_1.addReviewers)(github_1.context, octokitPullRequest, pullRequestNumber);
     const requestBaseParams = {
         ...repo,
         pull_number: pullRequestNumber,
