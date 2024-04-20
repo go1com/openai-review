@@ -5,6 +5,7 @@ import { AzureOpenAIExec } from './azure-openai';
 import type { GetResponseTypeFromEndpointMethod } from '@octokit/types';
 import { checkEventName } from './helpers/event-name-check';
 import { getPullRequestNumber } from './helpers/pull-request';
+import { addAssignees } from './helpers/assignees';
 
 const createOctokitClient = () => {
   const octokitClient = new Octokit();
@@ -17,31 +18,18 @@ const createOctokitClient = () => {
 const main = async (): Promise<void> => {
   const {
     eventName,
-    payload: { pull_request },
+    payload,
     issue: { number: issueNumber },
-    actor,
     repo,
   } = context;
 
   if (!checkEventName(context, eventName)) return;
 
-  const pullRequestNumber = getPullRequestNumber(context.payload);
+  const pullRequestNumber = getPullRequestNumber(payload);
   if (!pullRequestNumber) return;
 
   const { octokitPullRequest, octokitIssues } = createOctokitClient();
-
-  const { data: listAssignees } = await octokitIssues.listAssignees({
-    ...repo,
-    issue_number: issueNumber,
-  });
-
-  if (!listAssignees.find(assignee => assignee.login === actor)) {
-    octokitIssues.addAssignees({
-      ...repo,
-      issue_number: issueNumber,
-      assignees: [actor],
-    });
-  }
+  addAssignees(context, octokitIssues, issueNumber);
 
   /**
    * @todo Add reviewers to the pull request.

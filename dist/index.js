@@ -57029,6 +57029,40 @@ exports.AzureOpenAIExec = AzureOpenAIExec;
 
 /***/ }),
 
+/***/ 4950:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.addAssignees = void 0;
+const getAssignees = async (context, issues, issueNumber) => {
+    const result = await issues.listAssignees({
+        ...context.repo,
+        issue_number: issueNumber,
+    });
+    if (result.status !== 200) {
+        return null;
+    }
+    return result.data;
+};
+const addAssignees = async (context, issues, issueNumber) => {
+    const assignees = await getAssignees(context, issues, issueNumber);
+    if (!assignees)
+        return; // It's not critical to add assignees. Should keep going with the process.
+    if (!assignees.find(assignee => assignee.login === context.actor)) {
+        issues.addAssignees({
+            ...context.repo,
+            issue_number: issueNumber,
+            assignees: [context.actor],
+        });
+    }
+};
+exports.addAssignees = addAssignees;
+
+
+/***/ }),
+
 /***/ 4638:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -57185,6 +57219,7 @@ const action_1 = __nccwpck_require__(1231);
 const azure_openai_1 = __nccwpck_require__(4370);
 const event_name_check_1 = __nccwpck_require__(4638);
 const pull_request_1 = __nccwpck_require__(5050);
+const assignees_1 = __nccwpck_require__(4950);
 const createOctokitClient = () => {
     const octokitClient = new action_1.Octokit();
     return {
@@ -57193,24 +57228,14 @@ const createOctokitClient = () => {
     };
 };
 const main = async () => {
-    const { eventName, payload: { pull_request }, issue: { number: issueNumber }, actor, repo, } = github_1.context;
+    const { eventName, payload, issue: { number: issueNumber }, repo, } = github_1.context;
     if (!(0, event_name_check_1.checkEventName)(github_1.context, eventName))
         return;
-    const pullRequestNumber = (0, pull_request_1.getPullRequestNumber)(github_1.context.payload);
+    const pullRequestNumber = (0, pull_request_1.getPullRequestNumber)(payload);
     if (!pullRequestNumber)
         return;
     const { octokitPullRequest, octokitIssues } = createOctokitClient();
-    const { data: listAssignees } = await octokitIssues.listAssignees({
-        ...repo,
-        issue_number: issueNumber,
-    });
-    if (!listAssignees.find(assignee => assignee.login === actor)) {
-        octokitIssues.addAssignees({
-            ...repo,
-            issue_number: issueNumber,
-            assignees: [actor],
-        });
-    }
+    (0, assignees_1.addAssignees)(github_1.context, octokitIssues, issueNumber);
     /**
      * @todo Add reviewers to the pull request.
      */

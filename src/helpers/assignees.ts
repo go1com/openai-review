@@ -1,7 +1,8 @@
-import { context } from '@actions/github';
+import { Context } from '@actions/github/lib/context';
 import { Octokit, RestEndpointMethodTypes } from '@octokit/action';
 
 const getAssignees = async (
+  context: Context,
   issues: Octokit['rest']['issues'],
   issueNumber: number,
 ): Promise<
@@ -20,10 +21,11 @@ const getAssignees = async (
 };
 
 export const addAssignees = async (
+  context: Context,
   issues: Octokit['rest']['issues'],
   issueNumber: number,
 ): Promise<void> => {
-  const assignees = await getAssignees(issues, issueNumber);
+  const assignees = await getAssignees(context, issues, issueNumber);
   if (!assignees) return; // It's not critical to add assignees. Should keep going with the process.
 
   if (!assignees.find(assignee => assignee.login === context.actor)) {
