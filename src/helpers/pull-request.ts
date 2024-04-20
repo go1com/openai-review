@@ -27,7 +27,9 @@ export const getPullRequest = async (
 > => {
   const result = await pullRequest.get({
     ...params,
-    headers: { Accept: 'application/vnd.github.v3.diff' },
+    headers: {
+      Accept: 'application/vnd.github+json,application/vnd.github.diff',
+    },
   });
 
   if (result.status !== 200) {

@@ -57208,7 +57208,9 @@ exports.getPullRequestNumber = getPullRequestNumber;
 const getPullRequest = async (pullRequest, params, eventName) => {
     const result = await pullRequest.get({
         ...params,
-        headers: { Accept: 'application/vnd.github.v3.diff' },
+        headers: {
+            Accept: 'application/vnd.github+json,application/vnd.github.diff',
+        },
     });
     if (result.status !== 200) {
         core.setFailed(`The GitHub API for comparing the base and head commits for this ${eventName} event returned ${result.status}, expected 200. ` +
