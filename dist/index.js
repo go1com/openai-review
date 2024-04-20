@@ -57117,7 +57117,7 @@ const main = async () => {
     for (const file of listOfFiles.data) {
         const prompt = `Please review the syntax of the file ${file.filename} in pull request #${pullRequestNumber} if it's newly added, deleted, or updated.`;
         const text = await (0, azure_openai_1.AzureOpenAIExec)(prompt);
-        // core.setOutput('text', text.replace(/(\r\n|\n|\r|'|"|`|)/gm, '')); // The output of this action is the text from OpenAI trimmed and escaped
+        core.setOutput('text', text.replace(/(\r\n|\n|\r|'|"|`|)/gm, '')); // The output of this action is the text from OpenAI trimmed and escaped
         if (core.getInput('bot-comment', { required: false }) === 'true') {
             // 1. Retrieve existing bot comments for the PR
             const { data: comments } = await octokitIssues.listComments({
@@ -57133,29 +57133,22 @@ const main = async () => {
             const output = `#### Go1 OpenAI Bot Review 🖌
     
     ${text}`;
-            // *Author: @${context.actor}, Action: \`${context.eventName}\`, Workflow: \`${context.workflow}\`*
-            // 3. If we have a comment, update it, otherwise create a new one
-            // if (botComment) {
-            //   octokitIssues.updateComment({
-            //     owner: context.repo.owner,
-            //     repo: context.repo.repo,
-            //     comment_id: botComment.id,
-            //     body: output,
-            //   });
-            // } else {
-            //   octokitIssues.createComment({
-            //     issue_number: context.issue.number,
-            //     owner: context.repo.owner,
-            //     repo: context.repo.repo,
-            //     body: output,
-            //   });
-            // }
-            octokitIssues.createComment({
-                issue_number: issueNumber,
-                owner: github_1.context.repo.owner,
-                repo: github_1.context.repo.repo,
-                body: output,
-            });
+            if (botComment) {
+                octokitIssues.updateComment({
+                    owner: github_1.context.repo.owner,
+                    repo: github_1.context.repo.repo,
+                    comment_id: botComment.id,
+                    body: output,
+                });
+            }
+            else {
+                octokitIssues.createComment({
+                    issue_number: github_1.context.issue.number,
+                    owner: github_1.context.repo.owner,
+                    repo: github_1.context.repo.repo,
+                    body: output,
+                });
+            }
         }
     }
 };
