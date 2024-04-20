@@ -57120,7 +57120,7 @@ const main = async () => {
         issue_number: issueNumber,
     });
     for (const file of listOfFiles.data) {
-        const prompt = `Please review the syntax of the file ${file.filename} in pull request #${pullRequestNumber} if it's newly added, deleted, or updated.`;
+        const prompt = `Please review the file ${file.filename} in pull request #${pullRequestNumber} if it's newly added, deleted, or updated and if the file contains security breach.`;
         const text = await (0, azure_openai_1.AzureOpenAIExec)(prompt);
         core.setOutput('text', text.replace(/(\r\n|\n|\r|'|"|`|)/gm, '')); // The output of this action is the text from OpenAI trimmed and escaped
         if (core.getInput('bot-comment', { required: false }) === 'true') {

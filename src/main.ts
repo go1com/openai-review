@@ -90,7 +90,7 @@ const main = async (): Promise<void> => {
   });
 
   for (const file of listOfFiles.data) {
-    const prompt = `Please review the syntax of the file ${file.filename} in pull request #${pullRequestNumber} if it's newly added, deleted, or updated.`;
+    const prompt = `Please review the file ${file.filename} in pull request #${pullRequestNumber} if it's newly added, deleted, or updated and if the file contains security breach.`;
 
     const text = await AzureOpenAIExec(prompt);
     core.setOutput('text', text.replace(/(\r\n|\n|\r|'|"|`|)/gm, '')); // The output of this action is the text from OpenAI trimmed and escaped
