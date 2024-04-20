@@ -57029,6 +57029,127 @@ exports.AzureOpenAIExec = AzureOpenAIExec;
 
 /***/ }),
 
+/***/ 4638:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.checkEventName = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+var eventNameTypes;
+(function (eventNameTypes) {
+    eventNameTypes["PULL_REQUEST"] = "pull_request";
+})(eventNameTypes || (eventNameTypes = {}));
+const checkEventName = (context, eventName) => {
+    if (context.eventName !== eventNameTypes.PULL_REQUEST) {
+        core.setFailed(`This action only supports Pull Requests, ${eventName} events are not supported. ` +
+            "Please submit an issue on this action's GitHub repo if you believe this in correct.");
+        return false;
+    }
+    return true;
+};
+exports.checkEventName = checkEventName;
+
+
+/***/ }),
+
+/***/ 5050:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.addPullRequestDescription = exports.getPullRequest = exports.getPullRequestNumber = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+const azure_openai_1 = __nccwpck_require__(4370);
+const getPullRequestNumber = (payload) => {
+    if (!payload.pull_request?.number) {
+        core.setFailed('Unable to retrieve the pull request number. Please ensure the pull request number is valid and try again.' +
+            `Please submit an issue on this action's GitHub repo if you believe this in correct.`);
+        return null;
+    }
+    return payload.pull_request.number;
+};
+exports.getPullRequestNumber = getPullRequestNumber;
+const getPullRequest = async (pullRequest, params, eventName) => {
+    const result = await pullRequest.get({
+        ...params,
+        headers: { Accept: 'application/vnd.github.v3.diff' },
+    });
+    if (result.status !== 200) {
+        core.setFailed(`The GitHub API for comparing the base and head commits for this ${eventName} event returned ${result.status}, expected 200. ` +
+            "Please submit an issue on this action's GitHub repo.");
+        return null;
+    }
+    return result.data;
+};
+exports.getPullRequest = getPullRequest;
+const addPullRequestDescription = async (pullRequest, body, pullRequestNumber, context, listOfFiles) => {
+    if (!body) {
+        let prompt = `Generate a concise description for pull request #${pullRequestNumber} in the repository ${context.repo.repo}.
+                  - The pull request includes changes in the following files: ${listOfFiles.map(file => file.filename).join(', ')}.
+                  - The description should provide a high-level overview of the changes and the purpose of the pull request.`;
+        const text = await (0, azure_openai_1.AzureOpenAIExec)(prompt);
+        core.setOutput('text', text.replace(/(\r\n|\n|\r|'|"|`|)/gm, ''));
+        await pullRequest.update({
+            ...context.repo,
+            pull_number: pullRequestNumber,
+            body: text,
+        });
+    }
+};
+exports.addPullRequestDescription = addPullRequestDescription;
+
+
+/***/ }),
+
 /***/ 399:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -57062,6 +57183,8 @@ const core = __importStar(__nccwpck_require__(2186));
 const github_1 = __nccwpck_require__(5438);
 const action_1 = __nccwpck_require__(1231);
 const azure_openai_1 = __nccwpck_require__(4370);
+const event_name_check_1 = __nccwpck_require__(4638);
+const pull_request_1 = __nccwpck_require__(5050);
 const createOctokitClient = () => {
     const octokitClient = new action_1.Octokit();
     return {
@@ -57071,17 +57194,11 @@ const createOctokitClient = () => {
 };
 const main = async () => {
     const { eventName, payload: { pull_request }, issue: { number: issueNumber }, actor, repo, } = github_1.context;
-    if (github_1.context.eventName !== 'pull_request') {
-        core.setFailed(`This action only supports Pull Requests, ${eventName} events are not supported. ` +
-            "Please submit an issue on this action's GitHub repo if you believe this in correct.");
+    if (!(0, event_name_check_1.checkEventName)(github_1.context, eventName))
         return;
-    }
-    if (!pull_request?.number) {
-        core.setFailed('Unable to retrieve the pull request number. Please ensure the pull request number is valid and try again.' +
-            "Please submit an issue on this action's GitHub repo if you believe this in correct.");
+    const pullRequestNumber = (0, pull_request_1.getPullRequestNumber)(github_1.context.payload);
+    if (!pullRequestNumber)
         return;
-    }
-    const pullRequestNumber = pull_request.number;
     const { octokitPullRequest, octokitIssues } = createOctokitClient();
     const { data: listAssignees } = await octokitIssues.listAssignees({
         ...repo,

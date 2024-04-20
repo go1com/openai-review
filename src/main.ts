@@ -3,6 +3,8 @@ import { context } from '@actions/github';
 import { Octokit } from '@octokit/action';
 import { AzureOpenAIExec } from './azure-openai';
 import type { GetResponseTypeFromEndpointMethod } from '@octokit/types';
+import { checkEventName } from './helpers/event-name-check';
+import { getPullRequestNumber } from './helpers/pull-request';
 
 const createOctokitClient = () => {
   const octokitClient = new Octokit();
@@ -21,23 +23,11 @@ const main = async (): Promise<void> => {
     repo,
   } = context;
 
-  if (context.eventName !== 'pull_request') {
-    core.setFailed(
-      `This action only supports Pull Requests, ${eventName} events are not supported. ` +
-        "Please submit an issue on this action's GitHub repo if you believe this in correct.",
-    );
-    return;
-  }
+  if (!checkEventName(context, eventName)) return;
 
-  if (!pull_request?.number) {
-    core.setFailed(
-      'Unable to retrieve the pull request number. Please ensure the pull request number is valid and try again.' +
-        "Please submit an issue on this action's GitHub repo if you believe this in correct.",
-    );
-    return;
-  }
+  const pullRequestNumber = getPullRequestNumber(context.payload);
+  if (!pullRequestNumber) return;
 
-  const pullRequestNumber = pull_request.number;
   const { octokitPullRequest, octokitIssues } = createOctokitClient();
 
   const { data: listAssignees } = await octokitIssues.listAssignees({

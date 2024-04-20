@@ -4,9 +4,9 @@ import { Context } from '@actions/github/lib/context';
 import { WebhookPayload } from '@actions/github/lib/interfaces';
 import { Octokit, RestEndpointMethodTypes } from '@octokit/action';
 
-export const getPullRequestNumber = async (
+export const getPullRequestNumber = (
   payload: WebhookPayload,
-): Promise<number | null> => {
+): number | null => {
   if (!payload.pull_request?.number) {
     core.setFailed(
       'Unable to retrieve the pull request number. Please ensure the pull request number is valid and try again.' +
