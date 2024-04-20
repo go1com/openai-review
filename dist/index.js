@@ -57065,11 +57065,11 @@ const azure_openai_1 = __nccwpck_require__(4370);
 const main = async () => {
     const { eventName, payload: { pull_request }, } = github_1.context;
     if (github_1.context.eventName !== 'pull_request') {
-        core.setFailed(`This action only supports pull requests, ${eventName} events are not supported. ` +
+        core.setFailed(`This action only supports Pull Requests, ${eventName} events are not supported. ` +
             "Please submit an issue on this action's GitHub repo if you believe this in correct.");
         return;
     }
-    if (pull_request?.number === undefined) {
+    if (!pull_request?.number) {
         core.setFailed("Can't get the pull request number" +
             "Please submit an issue on this action's GitHub repo if you believe this in correct.");
         return;
@@ -57099,22 +57099,14 @@ const main = async () => {
         core.setFailed(`The GitHub API for comparing the base and head commits for this ${eventName} event returned ${response.status}, expected 200. ` +
             "Please submit an issue on this action's GitHub repo.");
     }
-    // @todo
-    // Ensure that payload sent to OpenAI is not too big.
-    // if (response.data.length > 2048) {
-    //   core.setFailed(
-    //     `The commit have too much changes. ` +
-    //     "Please submit an issue on this action's GitHub repo."
-    //   )
-    // }
-    /**
-     * Objectives
-     * Code Style: Checking if the code adheres to predefined style guidelines.
-        Code Quality: Looking for common programming errors, potential bugs, and code smells.
-        Security: Identifying security vulnerabilities like SQL injections or buffer overflows.
-        Documentation: Ensuring that new code is properly documented.
-        Test Coverage: Verifying that new code includes adequate unit tests.
-     */
+    let numberOfLinesChanged = 0;
+    for (const file of listOfFiles.data) {
+        numberOfLinesChanged = file.changes + file.additions + file.deletions;
+    }
+    if (numberOfLinesChanged > 2048) {
+        core.setFailed(`The commit have too much changes. ` +
+            "Please submit an issue on this action's GitHub repo.");
+    }
     for (const file of listOfFiles.data) {
         // const prompt = `Please list the new, deleted, or updated files in pull request #${pullRequestNumber}.
         //   Changed files include: \n${listOfFiles.data.map(file => file.filename).join('\n')}.`;
@@ -57154,12 +57146,18 @@ const main = async () => {
             //     body: output,
             //   });
             // }
-            octokitIssues.createComment({
-                issue_number: github_1.context.issue.number,
-                owner: github_1.context.repo.owner,
-                repo: github_1.context.repo.repo,
+            octokitPullRequest.createReview({
+                ...github_1.context.repo,
+                pull_number: pullRequestNumber,
                 body: output,
+                event: 'COMMENT',
             });
+            // octokitIssues.createComment({
+            //   issue_number: context.issue.number,
+            //   owner: context.repo.owner,
+            //   repo: context.repo.repo,
+            //   body: output,
+            // });
         }
     }
 };

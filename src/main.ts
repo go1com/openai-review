@@ -10,13 +10,13 @@ const main = async (): Promise<void> => {
   } = context;
   if (context.eventName !== 'pull_request') {
     core.setFailed(
-      `This action only supports pull requests, ${eventName} events are not supported. ` +
+      `This action only supports Pull Requests, ${eventName} events are not supported. ` +
         "Please submit an issue on this action's GitHub repo if you believe this in correct.",
     );
     return;
   }
 
-  if (pull_request?.number === undefined) {
+  if (!pull_request?.number) {
     core.setFailed(
       "Can't get the pull request number" +
         "Please submit an issue on this action's GitHub repo if you believe this in correct.",
@@ -55,23 +55,18 @@ const main = async (): Promise<void> => {
         "Please submit an issue on this action's GitHub repo.",
     );
   }
-  // @todo
-  // Ensure that payload sent to OpenAI is not too big.
-  // if (response.data.length > 2048) {
-  //   core.setFailed(
-  //     `The commit have too much changes. ` +
-  //     "Please submit an issue on this action's GitHub repo."
-  //   )
-  // }
 
-  /**
-   * Objectives
-   * Code Style: Checking if the code adheres to predefined style guidelines.
-      Code Quality: Looking for common programming errors, potential bugs, and code smells.
-      Security: Identifying security vulnerabilities like SQL injections or buffer overflows.
-      Documentation: Ensuring that new code is properly documented.
-      Test Coverage: Verifying that new code includes adequate unit tests.
-   */
+  let numberOfLinesChanged = 0;
+  for (const file of listOfFiles.data) {
+    numberOfLinesChanged = file.changes + file.additions + file.deletions;
+  }
+
+  if (numberOfLinesChanged > 2048) {
+    core.setFailed(
+      `The commit have too much changes. ` +
+        "Please submit an issue on this action's GitHub repo.",
+    );
+  }
 
   for (const file of listOfFiles.data) {
     // const prompt = `Please list the new, deleted, or updated files in pull request #${pullRequestNumber}.
@@ -119,12 +114,19 @@ const main = async (): Promise<void> => {
       //   });
       // }
 
-      octokitIssues.createComment({
-        issue_number: context.issue.number,
-        owner: context.repo.owner,
-        repo: context.repo.repo,
+      octokitPullRequest.createReview({
+        ...context.repo,
+        pull_number: pullRequestNumber,
         body: output,
+        event: 'COMMENT',
       });
+
+      // octokitIssues.createComment({
+      //   issue_number: context.issue.number,
+      //   owner: context.repo.owner,
+      //   repo: context.repo.repo,
+      //   body: output,
+      // });
     }
   }
 };
