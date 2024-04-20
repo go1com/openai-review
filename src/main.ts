@@ -89,6 +89,19 @@ const main = async (): Promise<void> => {
     issue_number: issueNumber,
   });
 
+  if (comments.length > 0) {
+    octokitPullRequest.deleteReviewComment({
+      owner: repo.owner,
+      repo: repo.repo,
+      comment_id: comments[0].id,
+    });
+    octokitIssues.deleteComment({
+      owner: repo.owner,
+      repo: repo.repo,
+      comment_id: comments[0].id,
+    });
+  }
+
   for (const file of listOfFiles.data) {
     const prompt = `Please review the file ${file.filename} in pull request #${pullRequestNumber} if it's newly added, deleted, or updated and if the file contains security breach.`;
 
@@ -96,30 +109,37 @@ const main = async (): Promise<void> => {
     core.setOutput('text', text.replace(/(\r\n|\n|\r|'|"|`|)/gm, '')); // The output of this action is the text from OpenAI trimmed and escaped
 
     if (core.getInput('bot-comment', { required: false }) === 'true') {
-      const botComment = comments.find(comment => {
-        return (
-          comment.user?.type === 'Bot' && comment.body?.includes(file.filename)
-        );
-      });
+      // const botComment = comments.find(comment => {
+      //   return (
+      //     comment.user?.type === 'Bot' && comment.body?.includes(file.filename)
+      //   );
+      // });
 
       const output = `#### Go1 OpenAI Bot Review - ${file.filename} 🖌
                       ${text}`;
 
-      if (botComment) {
-        octokitIssues.updateComment({
-          owner: context.repo.owner,
-          repo: context.repo.repo,
-          comment_id: botComment.id,
-          body: output,
-        });
-      } else {
-        octokitIssues.createComment({
-          issue_number: context.issue.number,
-          owner: context.repo.owner,
-          repo: context.repo.repo,
-          body: output,
-        });
-      }
+      // if (botComment) {
+      //   octokitIssues.updateComment({
+      //     owner: context.repo.owner,
+      //     repo: context.repo.repo,
+      //     comment_id: botComment.id,
+      //     body: output,
+      //   });
+      // } else {
+      //   octokitIssues.createComment({
+      //     issue_number: context.issue.number,
+      //     owner: context.repo.owner,
+      //     repo: context.repo.repo,
+      //     body: output,
+      //   });
+      // }
+
+      octokitIssues.createComment({
+        issue_number: context.issue.number,
+        owner: context.repo.owner,
+        repo: context.repo.repo,
+        body: output,
+      });
     }
   }
 };
@@ -130,3 +150,4 @@ main().catch(err => {
   }
   console.error(err);
 });
+// Path: src/azure-openai.ts
