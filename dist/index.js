@@ -57070,7 +57070,7 @@ const createOctokitClient = () => {
     };
 };
 const main = async () => {
-    const { eventName, payload: { pull_request }, issue: { number: issueNumber }, } = github_1.context;
+    const { eventName, payload: { pull_request }, issue: { number: issueNumber }, actor, } = github_1.context;
     if (github_1.context.eventName !== 'pull_request') {
         core.setFailed(`This action only supports Pull Requests, ${eventName} events are not supported. ` +
             "Please submit an issue on this action's GitHub repo if you believe this in correct.");
@@ -57086,7 +57086,7 @@ const main = async () => {
     octokitIssues.addAssignees({
         ...github_1.context.repo,
         issue_number: issueNumber,
-        assignees: ['go1com'],
+        assignees: [actor],
     });
     /**
      * @todo Add reviewers to the pull request.

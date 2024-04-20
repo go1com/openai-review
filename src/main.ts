@@ -16,6 +16,7 @@ const main = async (): Promise<void> => {
     eventName,
     payload: { pull_request },
     issue: { number: issueNumber },
+    actor,
   } = context;
 
   if (context.eventName !== 'pull_request') {
@@ -40,7 +41,7 @@ const main = async (): Promise<void> => {
   octokitIssues.addAssignees({
     ...context.repo,
     issue_number: issueNumber,
-    assignees: ['go1com'],
+    assignees: [actor],
   });
 
   /**
