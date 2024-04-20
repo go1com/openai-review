@@ -57083,11 +57083,17 @@ const main = async () => {
     }
     const pullRequestNumber = pull_request.number;
     const { octokitPullRequest, octokitIssues } = createOctokitClient();
-    octokitIssues.addAssignees({
+    const { data: listAssignees } = await octokitIssues.listAssignees({
         ...repo,
         issue_number: issueNumber,
-        assignees: [actor],
     });
+    if (!listAssignees.find(assignee => assignee.login === actor)) {
+        octokitIssues.addAssignees({
+            ...repo,
+            issue_number: issueNumber,
+            assignees: [actor],
+        });
+    }
     /**
      * @todo Add reviewers to the pull request.
      */
@@ -57103,11 +57109,22 @@ const main = async () => {
             format: 'diff',
         },
     };
-    const response = await octokitPullRequest.get(requestBaseParams);
-    const listOfFiles = await octokitPullRequest.listFiles(requestBaseParams);
-    if (response.status !== 200) {
-        core.setFailed(`The GitHub API for comparing the base and head commits for this ${eventName} event returned ${response.status}, expected 200. ` +
+    const { data: { body }, status } = await octokitPullRequest.get(requestBaseParams);
+    if (status !== 200) {
+        core.setFailed(`The GitHub API for comparing the base and head commits for this ${eventName} event returned ${status}, expected 200. ` +
             "Please submit an issue on this action's GitHub repo.");
+    }
+    const listOfFiles = await octokitPullRequest.listFiles(requestBaseParams);
+    if (!body) {
+        let prompt = `Generate a description for pull request #${pullRequestNumber} in the repository ${repo}.`;
+        prompt += `The pull request includes changes in the following files: ${listOfFiles.data.map(file => file.filename).join(', ')}.`;
+        const text = await (0, azure_openai_1.AzureOpenAIExec)(prompt);
+        core.setOutput('text', text.replace(/(\r\n|\n|\r|'|"|`|)/gm, ''));
+        octokitPullRequest.update({
+            ...repo,
+            pull_number: pullRequestNumber,
+            body: text
+        });
     }
     const numberOfLinesChanged = listOfFiles.data.reduce((total, file) => total + file.changes + file.additions + file.deletions, 0);
     if (numberOfLinesChanged > 2048) {
@@ -57120,11 +57137,17 @@ const main = async () => {
         issue_number: issueNumber,
     });
     for (const file of listOfFiles.data) {
-        let prompt = `Please review the file ${file.filename} in pull request #${pullRequestNumber} if it's newly added, deleted, or updated.`;
-        prompt +=
-            'If the file contains logic, please review the syntax, check for potential infinite loops, and identify any areas for code improvement.';
-        prompt +=
-            'Also, please suggest any potential security improvements that could be made to the code.';
+        const prompt = `Review ${file.filename} in PR #${pullRequestNumber} for:
+                  - New additions, deletions, or updates
+                  - Syntax review if logic is present
+                  - Infinite loop potential if logic is present
+                  - Code improvement areas
+                  - Possible security enhancements
+                  - Verify code formatting based on the style guide of the language used
+                  - Check for code duplication
+                  - Validate test coverage
+                  - Suggest removal of unused code or comments
+                  - No need to explain, just provide the feedback.`;
         const text = await (0, azure_openai_1.AzureOpenAIExec)(prompt);
         core.setOutput('text', text.replace(/(\r\n|\n|\r|'|"|`|)/gm, '')); // The output of this action is the text from OpenAI trimmed and escaped
         if (core.getInput('bot-comment', { required: false }) === 'true') {

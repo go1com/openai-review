@@ -14,11 +14,10 @@ inputs:
   model:
     description: 'The model to use'
     required: false
-    default: 'gpt-35-turbo-instruct'
+    default: 'gpt-35-turbo-instruct' # ask Jon to get model 4
   bot-comment:
-    description: 'Do you need to have the bot to post comment on the PR'
+    description: 'Bot comment on the Pull Request'
     required: false
-    default: false
   token:
     description: GitHub token to post a comment
     required: true
