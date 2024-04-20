@@ -57081,7 +57081,14 @@ const main = async () => {
         ...github_1.context.repo,
         pull_number: github_1.context.payload.pull_request?.number,
         mediaType: {
-            format: "diff",
+            format: 'diff',
+        },
+    });
+    const listOfFiles = await octokit.rest.pulls.listFiles({
+        ...github_1.context.repo,
+        pull_number: github_1.context.payload.pull_request?.number,
+        mediaType: {
+            format: 'diff',
         },
     });
     // Ensure that the request was successful.
@@ -57097,14 +57104,22 @@ const main = async () => {
     //     "Please submit an issue on this action's GitHub repo."
     //   )
     // }
-    const prompt = `You are a bot explains the changes from the result of
-    ${response.data}
-    that user given. You should separate each big changes into bullet points or numbered points based on the given git diff changes without mentioning itself`;
+    /**
+     * Objectives
+     * Code Style: Checking if the code adheres to predefined style guidelines.
+        Code Quality: Looking for common programming errors, potential bugs, and code smells.
+        Security: Identifying security vulnerabilities like SQL injections or buffer overflows.
+        Documentation: Ensuring that new code is properly documented.
+        Test Coverage: Verifying that new code includes adequate unit tests.
+     */
+    const prompt = `You are a bot grouping a list of files along with their respective paths and types (if possible, determine the programming language) from
+    ${listOfFiles.data}
+    that resulted from the github client. You should create a description for this list of files.`;
     // const text = await AzureOpenAIExec(`Write a description for this git diff: \n ${response.data}`);
     const text = await (0, azure_openai_1.AzureOpenAIExec)(prompt);
     // The output of this action is the text from OpenAI trimmed and escaped
-    core.setOutput("text", text.replace(/(\r\n|\n|\r|'|"|`|)/gm, ""));
-    if (core.getInput("bot-comment", { required: false }) === "true") {
+    core.setOutput('text', text.replace(/(\r\n|\n|\r|'|"|`|)/gm, ''));
+    if (core.getInput('bot-comment', { required: false }) === 'true') {
         // 1. Retrieve existing bot comments for the PR
         const { data: comments } = await octokit.rest.issues.listComments({
             owner: github_1.context.repo.owner,
@@ -57112,7 +57127,8 @@ const main = async () => {
             issue_number: github_1.context.issue.number,
         });
         const botComment = comments.find(comment => {
-            return comment.user?.type === 'Bot' && comment.body?.includes('Go1 OpenAI Bot Review');
+            return (comment.user?.type === 'Bot' &&
+                comment.body?.includes('Go1 OpenAI Bot Review'));
         });
         // 2. Prepare format of the comment
         const output = `#### Go1 OpenAI Bot Review 🖌
@@ -57127,7 +57143,7 @@ ${text}
                 owner: github_1.context.repo.owner,
                 repo: github_1.context.repo.repo,
                 comment_id: botComment.id,
-                body: output
+                body: output,
             });
         }
         else {
@@ -57135,12 +57151,12 @@ ${text}
                 issue_number: github_1.context.issue.number,
                 owner: github_1.context.repo.owner,
                 repo: github_1.context.repo.repo,
-                body: output
+                body: output,
             });
         }
     }
 };
-main().catch((err) => {
+main().catch(err => {
     if (err instanceof Error) {
         core.setFailed(err.message);
     }
