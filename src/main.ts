@@ -1,41 +1,48 @@
 import * as core from '@actions/core';
 import { context } from '@actions/github';
 import { Octokit } from '@octokit/action';
-// import { computeDiff, showColorDiff } from './diff';
 import { AzureOpenAIExec } from './azure-openai';
 
 const main = async (): Promise<void> => {
+  const {
+    eventName,
+    payload: { pull_request },
+  } = context;
   if (context.eventName !== 'pull_request') {
     core.setFailed(
-      `This action only supports pull requests, ${context.eventName} events are not supported. ` +
+      `This action only supports pull requests, ${eventName} events are not supported. ` +
         "Please submit an issue on this action's GitHub repo if you believe this in correct.",
     );
     return;
   }
 
-  if (context.payload.pull_request?.number === undefined) {
+  if (pull_request?.number === undefined) {
     core.setFailed(
-      `Can't get the pull request number` +
+      "Can't get the pull request number" +
         "Please submit an issue on this action's GitHub repo if you believe this in correct.",
     );
     return;
   }
+
+  const pullRequestNumber = pull_request.number;
 
   // Create GitHub client with the API token.
-  const octokit = new Octokit();
+  const octokitClient = new Octokit();
+  const octokitPullRequest = octokitClient.rest.pulls;
+  const octokitIssues = octokitClient.rest.issues;
 
   // Get the diff content of the PR.
-  const response = await octokit.rest.pulls.get({
+  const response = await octokitPullRequest.get({
     ...context.repo,
-    pull_number: context.payload.pull_request?.number,
+    pull_number: pullRequestNumber,
     mediaType: {
       format: 'diff',
     },
   });
 
-  const listOfFiles = await octokit.rest.pulls.listFiles({
+  const listOfFiles = await octokitPullRequest.listFiles({
     ...context.repo,
-    pull_number: context.payload.pull_request?.number,
+    pull_number: pull_request?.number,
     mediaType: {
       format: 'diff',
     },
@@ -44,7 +51,7 @@ const main = async (): Promise<void> => {
   // Ensure that the request was successful.
   if (response.status !== 200) {
     core.setFailed(
-      `The GitHub API for comparing the base and head commits for this ${context.eventName} event returned ${response.status}, expected 200. ` +
+      `The GitHub API for comparing the base and head commits for this ${eventName} event returned ${response.status}, expected 200. ` +
         "Please submit an issue on this action's GitHub repo.",
     );
   }
@@ -66,9 +73,9 @@ const main = async (): Promise<void> => {
       Test Coverage: Verifying that new code includes adequate unit tests.
    */
 
-  const prompt = `You are a bot grouping a list of files along with their respective paths and types (if possible, determine the programming language) from
+  const prompt = `You are a bot grouping a list of files included in the Pull Request along with their respective paths and types (if possible, determine the programming language) from
     ${listOfFiles.data}
-    that resulted from the github client. You should create a description for this list of files.`;
+    that resulted from the github client`;
 
   // const text = await AzureOpenAIExec(`Write a description for this git diff: \n ${response.data}`);
   const text = await AzureOpenAIExec(prompt);
@@ -77,7 +84,7 @@ const main = async (): Promise<void> => {
 
   if (core.getInput('bot-comment', { required: false }) === 'true') {
     // 1. Retrieve existing bot comments for the PR
-    const { data: comments } = await octokit.rest.issues.listComments({
+    const { data: comments } = await octokitIssues.listComments({
       owner: context.repo.owner,
       repo: context.repo.repo,
       issue_number: context.issue.number,
@@ -98,14 +105,14 @@ ${text}
 
     // 3. If we have a comment, update it, otherwise create a new one
     if (botComment) {
-      octokit.rest.issues.updateComment({
+      octokitIssues.updateComment({
         owner: context.repo.owner,
         repo: context.repo.repo,
         comment_id: botComment.id,
         body: output,
       });
     } else {
-      octokit.rest.issues.createComment({
+      octokitIssues.createComment({
         issue_number: context.issue.number,
         owner: context.repo.owner,
         repo: context.repo.repo,

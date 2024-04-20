@@ -57061,39 +57061,42 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
 const github_1 = __nccwpck_require__(5438);
 const action_1 = __nccwpck_require__(1231);
-// import { computeDiff, showColorDiff } from './diff';
 const azure_openai_1 = __nccwpck_require__(4370);
 const main = async () => {
+    const { eventName, payload: { pull_request }, } = github_1.context;
     if (github_1.context.eventName !== 'pull_request') {
-        core.setFailed(`This action only supports pull requests, ${github_1.context.eventName} events are not supported. ` +
+        core.setFailed(`This action only supports pull requests, ${eventName} events are not supported. ` +
             "Please submit an issue on this action's GitHub repo if you believe this in correct.");
         return;
     }
-    if (github_1.context.payload.pull_request?.number === undefined) {
-        core.setFailed(`Can't get the pull request number` +
+    if (pull_request?.number === undefined) {
+        core.setFailed("Can't get the pull request number" +
             "Please submit an issue on this action's GitHub repo if you believe this in correct.");
         return;
     }
+    const pullRequestNumber = pull_request.number;
     // Create GitHub client with the API token.
-    const octokit = new action_1.Octokit();
+    const octokitClient = new action_1.Octokit();
+    const octokitPullRequest = octokitClient.rest.pulls;
+    const octokitIssues = octokitClient.rest.issues;
     // Get the diff content of the PR.
-    const response = await octokit.rest.pulls.get({
+    const response = await octokitPullRequest.get({
         ...github_1.context.repo,
-        pull_number: github_1.context.payload.pull_request?.number,
+        pull_number: pullRequestNumber,
         mediaType: {
             format: 'diff',
         },
     });
-    const listOfFiles = await octokit.rest.pulls.listFiles({
+    const listOfFiles = await octokitPullRequest.listFiles({
         ...github_1.context.repo,
-        pull_number: github_1.context.payload.pull_request?.number,
+        pull_number: pull_request?.number,
         mediaType: {
             format: 'diff',
         },
     });
     // Ensure that the request was successful.
     if (response.status !== 200) {
-        core.setFailed(`The GitHub API for comparing the base and head commits for this ${github_1.context.eventName} event returned ${response.status}, expected 200. ` +
+        core.setFailed(`The GitHub API for comparing the base and head commits for this ${eventName} event returned ${response.status}, expected 200. ` +
             "Please submit an issue on this action's GitHub repo.");
     }
     // @todo
@@ -57112,16 +57115,16 @@ const main = async () => {
         Documentation: Ensuring that new code is properly documented.
         Test Coverage: Verifying that new code includes adequate unit tests.
      */
-    const prompt = `You are a bot grouping a list of files along with their respective paths and types (if possible, determine the programming language) from
+    const prompt = `You are a bot grouping a list of files included in the Pull Request along with their respective paths and types (if possible, determine the programming language) from
     ${listOfFiles.data}
-    that resulted from the github client. You should create a description for this list of files.`;
+    that resulted from the github client`;
     // const text = await AzureOpenAIExec(`Write a description for this git diff: \n ${response.data}`);
     const text = await (0, azure_openai_1.AzureOpenAIExec)(prompt);
     // The output of this action is the text from OpenAI trimmed and escaped
     core.setOutput('text', text.replace(/(\r\n|\n|\r|'|"|`|)/gm, ''));
     if (core.getInput('bot-comment', { required: false }) === 'true') {
         // 1. Retrieve existing bot comments for the PR
-        const { data: comments } = await octokit.rest.issues.listComments({
+        const { data: comments } = await octokitIssues.listComments({
             owner: github_1.context.repo.owner,
             repo: github_1.context.repo.repo,
             issue_number: github_1.context.issue.number,
@@ -57139,7 +57142,7 @@ ${text}
 `;
         // 3. If we have a comment, update it, otherwise create a new one
         if (botComment) {
-            octokit.rest.issues.updateComment({
+            octokitIssues.updateComment({
                 owner: github_1.context.repo.owner,
                 repo: github_1.context.repo.repo,
                 comment_id: botComment.id,
@@ -57147,7 +57150,7 @@ ${text}
             });
         }
         else {
-            octokit.rest.issues.createComment({
+            octokitIssues.createComment({
                 issue_number: github_1.context.issue.number,
                 owner: github_1.context.repo.owner,
                 repo: github_1.context.repo.repo,
