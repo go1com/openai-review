@@ -57115,7 +57115,7 @@ const main = async () => {
             "Please submit an issue on this action's GitHub repo.");
     }
     const listOfFiles = await octokitPullRequest.listFiles(requestBaseParams);
-    if (!body) {
+    if (!body || body?.length === 0) {
         let prompt = `Generate a concise description for pull request #${pullRequestNumber} in the repository ${repo}.
                   - The pull request includes changes in the following files: ${listOfFiles.data.map(file => file.filename).join(', ')}.
                   - The description should provide a high-level overview of the changes and the purpose of the pull request.`;
@@ -57137,6 +57137,20 @@ const main = async () => {
         repo: repo.repo,
         issue_number: issueNumber,
     });
+    if (comments.length > listOfFiles.data.length) {
+        const unusedComments = comments.filter(comment => {
+            return !listOfFiles.data.some(file => comment.body?.includes(file.filename));
+        });
+        if (unusedComments.length > 0) {
+            for (const comment of unusedComments) {
+                octokitIssues.deleteComment({
+                    owner: repo.owner,
+                    repo: repo.repo,
+                    comment_id: comment.id,
+                });
+            }
+        }
+    }
     for (const file of listOfFiles.data) {
         let prompt = `Review ${file.filename} in PR #${pullRequestNumber}. 
                   Provide concise feedback only on aspects that require attention or improvement. 
