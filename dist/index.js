@@ -57152,13 +57152,15 @@ const getPullRequestNumber = (payload) => {
     return payload.pull_request.number;
 };
 exports.getPullRequestNumber = getPullRequestNumber;
-const getPullRequest = async (pullRequest, params, eventName) => {
+const getPullRequest = async (pullRequest, params, pullRequestNumber) => {
     const result = await pullRequest.get({
         ...params,
-        headers: { Accept: 'application/vnd.github.v3.diff' },
+        headers: {
+            Accept: 'application/vnd.github+json,application/vnd.github.diff',
+        },
     });
     if (result.status !== 200) {
-        core.setFailed(`The GitHub API for comparing the base and head commits for this ${eventName} event returned ${result.status}, expected 200. ` +
+        core.setFailed(`The GitHub API for getting pull request #${pullRequestNumber} resulted in status ${result.status}, expected 200. ` +
             "Please submit an issue on this action's GitHub repo.");
         return null;
     }
@@ -57257,23 +57259,20 @@ const main = async () => {
     const { octokitPullRequest, octokitIssues } = createOctokitClient();
     (0, assignees_1.addAssignees)(github_1.context, octokitIssues, issueNumber);
     /**
-     * @todo Add reviewers to the pull request.
+     * @todo Add reviewers to the addReviews method.
      */
     (0, reviewers_1.addReviewers)(github_1.context, octokitPullRequest, pullRequestNumber);
     const requestBaseParams = {
         ...repo,
         pull_number: pullRequestNumber,
+        issue_number: issueNumber,
         mediaType: {
             format: 'diff',
         },
     };
-    const { data: { body }, status, } = await octokitPullRequest.get(requestBaseParams);
-    if (status !== 200) {
-        core.setFailed(`The GitHub API for comparing the base and head commits for this ${eventName} event returned ${status}, expected 200. ` +
-            "Please submit an issue on this action's GitHub repo.");
-    }
+    const pullRequest = await (0, pull_request_1.getPullRequest)(octokitPullRequest, requestBaseParams, pullRequestNumber);
     const listOfFiles = await octokitPullRequest.listFiles(requestBaseParams);
-    if (!body || body?.length === 0) {
+    if (!pullRequest?.body || pullRequest.body?.length === 0) {
         let prompt = `Generate a concise description for pull request #${pullRequestNumber} in the repository ${repo}.
                   - The pull request includes changes in the following files: ${listOfFiles.data.map(file => file.filename).join(', ')}.
                   - The description should provide a high-level overview of the changes and the purpose of the pull request.`;

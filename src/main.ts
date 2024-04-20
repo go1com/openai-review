@@ -4,7 +4,7 @@ import { Octokit } from '@octokit/action';
 import { AzureOpenAIExec } from './azure-openai';
 import type { GetResponseTypeFromEndpointMethod } from '@octokit/types';
 import { checkEventName } from './helpers/event-name-check';
-import { getPullRequestNumber } from './helpers/pull-request';
+import { getPullRequest, getPullRequestNumber } from './helpers/pull-request';
 import { addAssignees } from './helpers/assignees';
 import { addReviewers } from './helpers/reviewers';
 
@@ -33,31 +33,27 @@ const main = async (): Promise<void> => {
   addAssignees(context, octokitIssues, issueNumber);
 
   /**
-   * @todo Add reviewers to the pull request.
+   * @todo Add reviewers to the addReviews method.
    */
   addReviewers(context, octokitPullRequest, pullRequestNumber);
 
   const requestBaseParams = {
     ...repo,
     pull_number: pullRequestNumber,
+    issue_number: issueNumber,
     mediaType: {
       format: 'diff',
     },
   };
-  const {
-    data: { body },
-    status,
-  }: GetResponseTypeFromEndpointMethod<typeof octokitPullRequest.get> =
-    await octokitPullRequest.get(requestBaseParams);
-  if (status !== 200) {
-    core.setFailed(
-      `The GitHub API for comparing the base and head commits for this ${eventName} event returned ${status}, expected 200. ` +
-        "Please submit an issue on this action's GitHub repo.",
-    );
-  }
+
+  const pullRequest = await getPullRequest(
+    octokitPullRequest,
+    requestBaseParams,
+    pullRequestNumber,
+  );
 
   const listOfFiles = await octokitPullRequest.listFiles(requestBaseParams);
-  if (!body || body?.length === 0) {
+  if (!pullRequest?.body || pullRequest.body?.length === 0) {
     let prompt = `Generate a concise description for pull request #${pullRequestNumber} in the repository ${repo}.
                   - The pull request includes changes in the following files: ${listOfFiles.data.map(file => file.filename).join(', ')}.
                   - The description should provide a high-level overview of the changes and the purpose of the pull request.`;

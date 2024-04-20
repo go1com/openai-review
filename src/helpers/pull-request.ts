@@ -21,18 +21,20 @@ export const getPullRequestNumber = (
 export const getPullRequest = async (
   pullRequest: Octokit['rest']['pulls'],
   params: RestEndpointMethodTypes['pulls']['get']['parameters'],
-  eventName: string,
+  pullRequestNumber: number,
 ): Promise<
   RestEndpointMethodTypes['pulls']['get']['response']['data'] | null
 > => {
   const result = await pullRequest.get({
     ...params,
-    headers: { Accept: 'application/vnd.github.v3.diff' },
+    headers: {
+      Accept: 'application/vnd.github+json,application/vnd.github.diff',
+    },
   });
 
   if (result.status !== 200) {
     core.setFailed(
-      `The GitHub API for comparing the base and head commits for this ${eventName} event returned ${result.status}, expected 200. ` +
+      `The GitHub API for getting pull request #${pullRequestNumber} resulted in status ${result.status}, expected 200. ` +
         "Please submit an issue on this action's GitHub repo.",
     );
 
