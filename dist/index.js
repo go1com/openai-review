@@ -57070,7 +57070,7 @@ const createOctokitClient = () => {
     };
 };
 const main = async () => {
-    const { eventName, payload: { pull_request }, issue: { number: issueNumber }, actor, } = github_1.context;
+    const { eventName, payload: { pull_request }, issue: { number: issueNumber }, actor, repo, } = github_1.context;
     if (github_1.context.eventName !== 'pull_request') {
         core.setFailed(`This action only supports Pull Requests, ${eventName} events are not supported. ` +
             "Please submit an issue on this action's GitHub repo if you believe this in correct.");
@@ -57084,7 +57084,7 @@ const main = async () => {
     const pullRequestNumber = pull_request.number;
     const { octokitPullRequest, octokitIssues } = createOctokitClient();
     octokitIssues.addAssignees({
-        ...github_1.context.repo,
+        ...repo,
         issue_number: issueNumber,
         assignees: [actor],
     });
@@ -57092,12 +57092,12 @@ const main = async () => {
      * @todo Add reviewers to the pull request.
      */
     octokitPullRequest.requestReviewers({
-        ...github_1.context.repo,
+        ...repo,
         pull_number: pullRequestNumber,
         reviewers: [],
     });
     const requestBaseParams = {
-        ...github_1.context.repo,
+        ...repo,
         pull_number: pullRequestNumber,
         mediaType: {
             format: 'diff',
@@ -57121,34 +57121,44 @@ const main = async () => {
         if (core.getInput('bot-comment', { required: false }) === 'true') {
             // 1. Retrieve existing bot comments for the PR
             const { data: comments } = await octokitIssues.listComments({
-                owner: github_1.context.repo.owner,
-                repo: github_1.context.repo.repo,
+                owner: repo.owner,
+                repo: repo.repo,
                 issue_number: issueNumber,
             });
-            const botComment = comments.find(comment => {
+            const botComments = comments.filter(comment => {
                 return (comment.user?.type === 'Bot' &&
                     comment.body?.includes('Go1 OpenAI Bot Review'));
             });
             // 2. Prepare format of the comment
             const output = `#### Go1 OpenAI Bot Review 🖌
-    
-    ${text}`;
-            if (botComment) {
-                octokitIssues.updateComment({
-                    owner: github_1.context.repo.owner,
-                    repo: github_1.context.repo.repo,
-                    comment_id: botComment.id,
-                    body: output,
+                      ${text}`;
+            botComments.forEach(async (comment) => {
+                await octokitIssues.deleteComment({
+                    ...repo,
+                    comment_id: comment.id,
                 });
-            }
-            else {
-                octokitIssues.createComment({
-                    issue_number: github_1.context.issue.number,
-                    owner: github_1.context.repo.owner,
-                    repo: github_1.context.repo.repo,
-                    body: output,
-                });
-            }
+            });
+            // if (botComment) {
+            //   octokitIssues.updateComment({
+            //     owner: context.repo.owner,
+            //     repo: context.repo.repo,
+            //     comment_id: botComment.id,
+            //     body: output,
+            //   });
+            // } else {
+            //   octokitIssues.createComment({
+            //     issue_number: context.issue.number,
+            //     owner: context.repo.owner,
+            //     repo: context.repo.repo,
+            //     body: output,
+            //   });
+            // }
+            octokitIssues.createComment({
+                issue_number: github_1.context.issue.number,
+                owner: github_1.context.repo.owner,
+                repo: github_1.context.repo.repo,
+                body: output,
+            });
         }
     }
 };
