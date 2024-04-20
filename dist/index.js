@@ -57116,8 +57116,9 @@ const main = async () => {
     }
     const listOfFiles = await octokitPullRequest.listFiles(requestBaseParams);
     if (!body) {
-        let prompt = `Generate a concise description in a form of bullet points if possible for pull request #${pullRequestNumber} in the repository ${repo}.`;
-        prompt += `The pull request includes changes in the following files: ${listOfFiles.data.map(file => file.filename).join(', ')}.`;
+        let prompt = `Generate a concise description for pull request #${pullRequestNumber} in the repository ${repo}.
+                  - The pull request includes changes in the following files: ${listOfFiles.data.map(file => file.filename).join(', ')}.
+                  - The description should provide a high-level overview of the changes and the purpose of the pull request.`;
         const text = await (0, azure_openai_1.AzureOpenAIExec)(prompt);
         core.setOutput('text', text.replace(/(\r\n|\n|\r|'|"|`|)/gm, ''));
         octokitPullRequest.update({
@@ -57137,37 +57138,36 @@ const main = async () => {
         issue_number: issueNumber,
     });
     for (const file of listOfFiles.data) {
-        let prompt = `Review ${file.filename} in PR #${pullRequestNumber}. Provide concise feedback in bullet points with code snippets if applicable. Skip any non-applicable points:
+        let prompt = `Review ${file.filename} in PR #${pullRequestNumber}. Provide concise feedback only on aspects that require attention or improvement. Use bullet points for each category, including code snippets if applicable. Skip reporting on aspects that are correctly implemented or not applicable. Focus on areas where improvements are necessary or where issues have been identified:
 
                   - Code Quality:
-                    - Syntax review
-                    - Code formatting review
-                    - Naming conventions review
-                    - Unused code review
+                    - Check for any syntax errors or unusual constructs.
+                    - Review formatting for consistency with project guidelines.
+                    - Assess naming conventions for clarity and consistency with best practices.
+                    - Identify any unused or redundant code.
 
                   - Logic and Complexity:
-                    - Infinite loop potential
-                    - Code improvement areas
-                    - Complexity review
-                    - Code duplication review
+                    - Evaluate for potential infinite loops or unoptimized loops.
+                    - Suggest improvements to enhance code efficiency or readability.
+                    - Review for unnecessary complexity or overly complicated structures.
+                    - Check for repeated code blocks that could be simplified or abstracted.
 
                   - Performance and Scalability:
-                    - Performance review
-                    - Scalability review
+                    - Analyze performance bottlenecks or areas that may not scale well.
 
                   - Security and Error Handling:
-                    - Security review
-                    - Error handling review
+                    - Examine the code for potential security vulnerabilities.
+                    - Review error handling for robustness against exceptions and edge cases.
 
                   - Maintainability and Readability:
-                    - Maintainability review
-                    - Readability review
-                    - Comments review
+                    - Evaluate the code's maintainability, considering modularity and coupling.
+                    - Assess readability and structure of the code.
+                    - Check if comments are sufficient and meaningful, especially for complex logic.
 
                   - Testing and Documentation:
-                    - Testability review
-                    - Test coverage review
-                    - Documentation review`;
+                    - Review testability of the code and suggest areas lacking adequate tests.
+                    - Assess the coverage and quality of existing tests.
+                    - Examine the adequacy of documentation, particularly public interfaces and complex algorithms.`;
         const text = await (0, azure_openai_1.AzureOpenAIExec)(prompt);
         core.setOutput('text', text.replace(/(\r\n|\n|\r|'|"|`|)/gm, '')); // The output of this action is the text from OpenAI trimmed and escaped
         if (core.getInput('bot-comment', { required: false }) === 'true') {
