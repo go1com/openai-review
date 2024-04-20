@@ -57115,46 +57115,48 @@ const main = async () => {
         Documentation: Ensuring that new code is properly documented.
         Test Coverage: Verifying that new code includes adequate unit tests.
      */
-    const prompt = `Identify and write a list of new files, deleted files, or updated files in the pull request number ${pullRequestNumber}. 
-  The list of changed files is: \n ${listOfFiles.data.map(file => file.filename).join('\n')}.`;
-    // const text = await AzureOpenAIExec(`Write a description for this git diff: \n ${response.data}`);
-    const text = await (0, azure_openai_1.AzureOpenAIExec)(prompt);
-    // The output of this action is the text from OpenAI trimmed and escaped
-    core.setOutput('text', text.replace(/(\r\n|\n|\r|'|"|`|)/gm, ''));
-    if (core.getInput('bot-comment', { required: false }) === 'true') {
-        // 1. Retrieve existing bot comments for the PR
-        const { data: comments } = await octokitIssues.listComments({
-            owner: github_1.context.repo.owner,
-            repo: github_1.context.repo.repo,
-            issue_number: github_1.context.issue.number,
-        });
-        const botComment = comments.find(comment => {
-            return (comment.user?.type === 'Bot' &&
-                comment.body?.includes('Go1 OpenAI Bot Review'));
-        });
-        // 2. Prepare format of the comment
-        const output = `#### Go1 OpenAI Bot Review 🖌
-
-${text}
-
-*Pusher: @${github_1.context.actor}, Action: \`${github_1.context.eventName}\`, Workflow: \`${github_1.context.workflow}\`*
-`;
-        // 3. If we have a comment, update it, otherwise create a new one
-        if (botComment) {
-            octokitIssues.updateComment({
+    for (const file of listOfFiles.data) {
+        // const prompt = `Please list the new, deleted, or updated files in pull request #${pullRequestNumber}.
+        //   Changed files include: \n${listOfFiles.data.map(file => file.filename).join('\n')}.`;
+        const prompt = `Please review the file ${file.filename} in pull request #${pullRequestNumber} if it's newly added, deleted, or updated.`;
+        const text = await (0, azure_openai_1.AzureOpenAIExec)(prompt);
+        // The output of this action is the text from OpenAI trimmed and escaped
+        core.setOutput('text', text.replace(/(\r\n|\n|\r|'|"|`|)/gm, ''));
+        if (core.getInput('bot-comment', { required: false }) === 'true') {
+            // 1. Retrieve existing bot comments for the PR
+            const { data: comments } = await octokitIssues.listComments({
                 owner: github_1.context.repo.owner,
                 repo: github_1.context.repo.repo,
-                comment_id: botComment.id,
-                body: output,
-            });
-        }
-        else {
-            octokitIssues.createComment({
                 issue_number: github_1.context.issue.number,
-                owner: github_1.context.repo.owner,
-                repo: github_1.context.repo.repo,
-                body: output,
             });
+            const botComment = comments.find(comment => {
+                return (comment.user?.type === 'Bot' &&
+                    comment.body?.includes('Go1 OpenAI Bot Review'));
+            });
+            // 2. Prepare format of the comment
+            const output = `#### Go1 OpenAI Bot Review 🖌
+    
+    ${text}
+
+    *Author: @${github_1.context.actor}, Action: \`${github_1.context.eventName}\`, Workflow: \`${github_1.context.workflow}\`*
+    `;
+            // 3. If we have a comment, update it, otherwise create a new one
+            if (botComment) {
+                octokitIssues.updateComment({
+                    owner: github_1.context.repo.owner,
+                    repo: github_1.context.repo.repo,
+                    comment_id: botComment.id,
+                    body: output,
+                });
+            }
+            else {
+                octokitIssues.createComment({
+                    issue_number: github_1.context.issue.number,
+                    owner: github_1.context.repo.owner,
+                    repo: github_1.context.repo.repo,
+                    body: output,
+                });
+            }
         }
     }
 };

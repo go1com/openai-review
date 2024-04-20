@@ -73,50 +73,53 @@ const main = async (): Promise<void> => {
       Test Coverage: Verifying that new code includes adequate unit tests.
    */
 
-  const prompt = `Identify and write a list of new files, deleted files, or updated files in the pull request number ${pullRequestNumber}. 
-  The list of changed files is: \n ${listOfFiles.data.map(file => file.filename).join('\n')}.`;
+  for (const file of listOfFiles.data) {
+    // const prompt = `Please list the new, deleted, or updated files in pull request #${pullRequestNumber}.
+    //   Changed files include: \n${listOfFiles.data.map(file => file.filename).join('\n')}.`;
 
-  // const text = await AzureOpenAIExec(`Write a description for this git diff: \n ${response.data}`);
-  const text = await AzureOpenAIExec(prompt);
-  // The output of this action is the text from OpenAI trimmed and escaped
-  core.setOutput('text', text.replace(/(\r\n|\n|\r|'|"|`|)/gm, ''));
+    const prompt = `Please review the file ${file.filename} in pull request #${pullRequestNumber} if it's newly added, deleted, or updated.`;
 
-  if (core.getInput('bot-comment', { required: false }) === 'true') {
-    // 1. Retrieve existing bot comments for the PR
-    const { data: comments } = await octokitIssues.listComments({
-      owner: context.repo.owner,
-      repo: context.repo.repo,
-      issue_number: context.issue.number,
-    });
-    const botComment = comments.find(comment => {
-      return (
-        comment.user?.type === 'Bot' &&
-        comment.body?.includes('Go1 OpenAI Bot Review')
-      );
-    });
-    // 2. Prepare format of the comment
-    const output = `#### Go1 OpenAI Bot Review 🖌
+    const text = await AzureOpenAIExec(prompt);
+    // The output of this action is the text from OpenAI trimmed and escaped
+    core.setOutput('text', text.replace(/(\r\n|\n|\r|'|"|`|)/gm, ''));
 
-${text}
-
-*Pusher: @${context.actor}, Action: \`${context.eventName}\`, Workflow: \`${context.workflow}\`*
-`;
-
-    // 3. If we have a comment, update it, otherwise create a new one
-    if (botComment) {
-      octokitIssues.updateComment({
+    if (core.getInput('bot-comment', { required: false }) === 'true') {
+      // 1. Retrieve existing bot comments for the PR
+      const { data: comments } = await octokitIssues.listComments({
         owner: context.repo.owner,
         repo: context.repo.repo,
-        comment_id: botComment.id,
-        body: output,
-      });
-    } else {
-      octokitIssues.createComment({
         issue_number: context.issue.number,
-        owner: context.repo.owner,
-        repo: context.repo.repo,
-        body: output,
       });
+      const botComment = comments.find(comment => {
+        return (
+          comment.user?.type === 'Bot' &&
+          comment.body?.includes('Go1 OpenAI Bot Review')
+        );
+      });
+      // 2. Prepare format of the comment
+      const output = `#### Go1 OpenAI Bot Review 🖌
+    
+    ${text}
+
+    *Author: @${context.actor}, Action: \`${context.eventName}\`, Workflow: \`${context.workflow}\`*
+    `;
+
+      // 3. If we have a comment, update it, otherwise create a new one
+      if (botComment) {
+        octokitIssues.updateComment({
+          owner: context.repo.owner,
+          repo: context.repo.repo,
+          comment_id: botComment.id,
+          body: output,
+        });
+      } else {
+        octokitIssues.createComment({
+          issue_number: context.issue.number,
+          owner: context.repo.owner,
+          repo: context.repo.repo,
+          body: output,
+        });
+      }
     }
   }
 };
