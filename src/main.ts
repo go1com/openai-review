@@ -99,27 +99,32 @@ const main = async (): Promise<void> => {
       // 2. Prepare format of the comment
       const output = `#### Go1 OpenAI Bot Review 🖌
     
-    ${text}
+    ${text}`;
 
-    *Author: @${context.actor}, Action: \`${context.eventName}\`, Workflow: \`${context.workflow}\`*
-    `;
-
+      // *Author: @${context.actor}, Action: \`${context.eventName}\`, Workflow: \`${context.workflow}\`*
       // 3. If we have a comment, update it, otherwise create a new one
-      if (botComment) {
-        octokitIssues.updateComment({
-          owner: context.repo.owner,
-          repo: context.repo.repo,
-          comment_id: botComment.id,
-          body: output,
-        });
-      } else {
-        octokitIssues.createComment({
-          issue_number: context.issue.number,
-          owner: context.repo.owner,
-          repo: context.repo.repo,
-          body: output,
-        });
-      }
+      // if (botComment) {
+      //   octokitIssues.updateComment({
+      //     owner: context.repo.owner,
+      //     repo: context.repo.repo,
+      //     comment_id: botComment.id,
+      //     body: output,
+      //   });
+      // } else {
+      //   octokitIssues.createComment({
+      //     issue_number: context.issue.number,
+      //     owner: context.repo.owner,
+      //     repo: context.repo.repo,
+      //     body: output,
+      //   });
+      // }
+
+      octokitIssues.createComment({
+        issue_number: context.issue.number,
+        owner: context.repo.owner,
+        repo: context.repo.repo,
+        body: output,
+      });
     }
   }
 };
