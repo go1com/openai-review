@@ -57115,8 +57115,7 @@ const main = async () => {
         Documentation: Ensuring that new code is properly documented.
         Test Coverage: Verifying that new code includes adequate unit tests.
      */
-    const prompt = `Identify only changed files in the pull request number ${pullRequestNumber}. 
-  The changed files are new files, deleted files, or updated files in the pull request.
+    const prompt = `Identify and write a list of new files, deleted files, or updated files in the pull request number ${pullRequestNumber}. 
   The list of changed files is: \n ${listOfFiles.data.map(file => file.filename).join('\n')}.`;
     // const text = await AzureOpenAIExec(`Write a description for this git diff: \n ${response.data}`);
     const text = await (0, azure_openai_1.AzureOpenAIExec)(prompt);
