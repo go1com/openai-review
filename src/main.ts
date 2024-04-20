@@ -2,7 +2,19 @@ import * as core from '@actions/core';
 import { context } from '@actions/github';
 import { Octokit } from '@octokit/action';
 import { AzureOpenAIExec } from './azure-openai';
-import type { GetResponseTypeFromEndpointMethod } from '@octokit/types';
+import { checkEventName } from './helpers/event-name-check';
+import {
+  addPullRequestDescription,
+  getPullRequest,
+  getPullRequestNumber,
+} from './helpers/pull-request';
+import { addAssignees } from './helpers/assignees';
+import { addReviewers } from './helpers/reviewers';
+import { getChangedFiles, limitLinesChanged } from './helpers/changed-files';
+
+export const initiateOctokitClient = (): Octokit => {
+  return new Octokit();
+};
 
 const createOctokitClient = () => {
   const octokitClient = new Octokit();
@@ -15,52 +27,17 @@ const createOctokitClient = () => {
 const main = async (): Promise<void> => {
   const {
     eventName,
-    payload: { pull_request },
     issue: { number: issueNumber },
-    actor,
     repo,
   } = context;
 
-  if (context.eventName !== 'pull_request') {
-    core.setFailed(
-      `This action only supports Pull Requests, ${eventName} events are not supported. ` +
-        "Please submit an issue on this action's GitHub repo if you believe this in correct.",
-    );
-    return;
-  }
+  if (!checkEventName(context, eventName)) return;
 
-  if (!pull_request?.number) {
-    core.setFailed(
-      'Unable to retrieve the pull request number. Please ensure the pull request number is valid and try again.' +
-        "Please submit an issue on this action's GitHub repo if you believe this in correct.",
-    );
-    return;
-  }
+  const pullRequestNumber = await getPullRequestNumber(context);
+  if (!pullRequestNumber) return;
 
-  const pullRequestNumber = pull_request.number;
   const { octokitPullRequest, octokitIssues } = createOctokitClient();
-
-  const { data: listAssignees } = await octokitIssues.listAssignees({
-    ...repo,
-    issue_number: issueNumber,
-  });
-
-  if (!listAssignees.find(assignee => assignee.login === actor)) {
-    octokitIssues.addAssignees({
-      ...repo,
-      issue_number: issueNumber,
-      assignees: [actor],
-    });
-  }
-
-  /**
-   * @todo Add reviewers to the pull request.
-   */
-  octokitPullRequest.requestReviewers({
-    ...repo,
-    pull_number: pullRequestNumber,
-    reviewers: [],
-  });
+  await addAssignees(octokitIssues, issueNumber);
 
   const requestBaseParams = {
     ...repo,
@@ -69,56 +46,53 @@ const main = async (): Promise<void> => {
       format: 'diff',
     },
   };
-  const {
-    data: { body },
-    status,
-  }: GetResponseTypeFromEndpointMethod<typeof octokitPullRequest.get> =
-    await octokitPullRequest.get(requestBaseParams);
-  if (status !== 200) {
-    core.setFailed(
-      `The GitHub API for comparing the base and head commits for this ${eventName} event returned ${status}, expected 200. ` +
-        "Please submit an issue on this action's GitHub repo.",
-    );
-  }
-
-  const listOfFiles = await octokitPullRequest.listFiles(requestBaseParams);
-  if (!body || body?.length === 0) {
-    let prompt = `Generate a concise description for pull request #${pullRequestNumber} in the repository ${repo}.
-                  - The pull request includes changes in the following files: ${listOfFiles.data.map(file => file.filename).join(', ')}.
-                  - The description should provide a high-level overview of the changes and the purpose of the pull request.`;
-
-    const text = await AzureOpenAIExec(prompt);
-    core.setOutput('text', text.replace(/(\r\n|\n|\r|'|"|`|)/gm, ''));
-    octokitPullRequest.update({
-      ...repo,
-      pull_number: pullRequestNumber,
-      body: text,
-    });
-  }
-
-  const numberOfLinesChanged = listOfFiles.data.reduce(
-    (total, file) => total + file.changes + file.additions + file.deletions,
-    0,
+  const pullRequest = await getPullRequest(
+    octokitPullRequest,
+    requestBaseParams,
+    eventName,
   );
 
-  if (numberOfLinesChanged > 2048) {
-    core.setFailed(
-      `The commit has too many changes. ` +
-        "Please submit an issue on this action's GitHub repo.",
-    );
-  }
+  octokitIssues.createComment({
+    ...repo,
+    issue_number: issueNumber,
+    body: `test diff:
+          ${pullRequest}`,
+  });
 
+  if (!pullRequest) return;
+
+  /**
+   * @todo Add reviewers to the addReviewers method.
+   */
+  pullRequest.requested_reviewers?.length
+    ? null
+    : addReviewers(octokitPullRequest, pullRequestNumber);
+  octokitPullRequest.createReview();
+  const listOfFiles = await getChangedFiles(
+    octokitPullRequest,
+    requestBaseParams,
+  );
+  if (!listOfFiles) return;
+  limitLinesChanged(listOfFiles);
+
+  addPullRequestDescription(
+    octokitPullRequest,
+    pullRequest.body,
+    pullRequestNumber,
+    context,
+    listOfFiles,
+  );
+
+  // WORKING ON THIS PART
   const { data: comments } = await octokitIssues.listComments({
     owner: repo.owner,
     repo: repo.repo,
     issue_number: issueNumber,
   });
 
-  if (comments.length > listOfFiles.data.length) {
+  if (comments.length > listOfFiles.length) {
     const unusedComments = comments.filter(comment => {
-      return !listOfFiles.data.some(file =>
-        comment.body?.includes(file.filename),
-      );
+      return !listOfFiles.some(file => comment.body?.includes(file.filename));
     });
     if (unusedComments.length > 0) {
       for (const comment of unusedComments) {
@@ -131,7 +105,7 @@ const main = async (): Promise<void> => {
     }
   }
 
-  for (const file of listOfFiles.data) {
+  for (const file of listOfFiles) {
     let prompt = `Review ${file.filename} in PR #${pullRequestNumber}. 
                   Provide concise feedback only on aspects that require attention or improvement. 
                   Use bullet points for each category, including code snippets if applicable.
@@ -212,7 +186,7 @@ const main = async (): Promise<void> => {
 
   if (latestComments.length > 0) {
     for (const comment of latestComments) {
-      for (const file of listOfFiles.data) {
+      for (const file of listOfFiles) {
         if (comment.body?.includes(file.filename)) {
           comment.body.trim() ===
             `#### Go1 OpenAI Bot Review - ${file.filename} 🖌`;
