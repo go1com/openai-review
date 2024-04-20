@@ -57138,7 +57138,11 @@ const main = async () => {
         issue_number: issueNumber,
     });
     for (const file of listOfFiles.data) {
-        let prompt = `Review ${file.filename} in PR #${pullRequestNumber}. Provide concise feedback only on aspects that require attention or improvement. Use bullet points for each category, including code snippets if applicable. Skip reporting on aspects that are correctly implemented or not applicable. Focus on areas where improvements are necessary or where issues have been identified:
+        let prompt = `Review ${file.filename} in PR #${pullRequestNumber}. 
+                  Provide concise feedback only on aspects that require attention or improvement. 
+                  Use bullet points for each category, including code snippets if applicable.
+                  If an aspect is already correct or good or consistent or does not require attention, do not give feedback on this aspect.
+                  Focus on areas where improvements are necessary or where issues have been identified:
 
                   - Code Quality:
                     - Check for any syntax errors or unusual constructs.
