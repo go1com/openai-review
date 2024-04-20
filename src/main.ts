@@ -52,14 +52,6 @@ const main = async (): Promise<void> => {
     requestBaseParams,
     eventName,
   );
-
-  octokitIssues.createComment({
-    ...repo,
-    issue_number: issueNumber,
-    body: `test diff:
-          ${pullRequest}`,
-  });
-
   if (!pullRequest) return;
 
   /**

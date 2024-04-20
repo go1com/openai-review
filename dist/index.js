@@ -57325,12 +57325,6 @@ const main = async () => {
         },
     };
     const pullRequest = await (0, pull_request_1.getPullRequest)(octokitPullRequest, requestBaseParams, eventName);
-    octokitIssues.createComment({
-        ...repo,
-        issue_number: issueNumber,
-        body: `test diff:
-          ${pullRequest}`,
-    });
     if (!pullRequest)
         return;
     /**
