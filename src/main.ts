@@ -73,7 +73,8 @@ const main = async (): Promise<void> => {
       Test Coverage: Verifying that new code includes adequate unit tests.
    */
 
-  const prompt = `You are a bot printing out ${listOfFiles.data} and also print out the Pull request json in ${pull_request}`;
+  const prompt = `Identify only files changed in the pull request number ${pullRequestNumber}. The list of files are: \n ${listOfFiles.data.map(file => file.filename).join('\n')}.
+  Identify the code style, code quality, security, documentation, and test coverage of the changes in the pull request. \n ${response.data}`;
 
   // const text = await AzureOpenAIExec(`Write a description for this git diff: \n ${response.data}`);
   const text = await AzureOpenAIExec(prompt);
