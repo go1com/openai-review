@@ -57188,7 +57188,8 @@ const main = async () => {
                     - Examine the adequacy of documentation, particularly public interfaces and complex algorithms.`;
         const text = await (0, azure_openai_1.AzureOpenAIExec)(prompt);
         core.setOutput('text', text.replace(/(\r\n|\n|\r|'|"|`|)/gm, '')); // The output of this action is the text from OpenAI trimmed and escaped
-        if (core.getInput('bot-comment', { required: false }) === 'true') {
+        if (text !== '' &&
+            core.getInput('bot-comment', { required: false }) === 'true') {
             const botComment = comments.find(comment => {
                 return (comment.user?.type === 'Bot' &&
                     comment.body?.includes(`#### Go1 OpenAI Bot Review - ${file.filename} 🖌`));
@@ -57210,6 +57211,28 @@ const main = async () => {
                     repo: github_1.context.repo.repo,
                     body: output,
                 });
+            }
+        }
+    }
+    const { data: latestComments } = await octokitIssues.listComments({
+        owner: repo.owner,
+        repo: repo.repo,
+        issue_number: issueNumber,
+    });
+    if (latestComments.length > 0) {
+        for (const comment of latestComments) {
+            for (const file of listOfFiles.data) {
+                if (comment.body?.includes(file.filename)) {
+                    comment.body.trim() ===
+                        `#### Go1 OpenAI Bot Review - ${file.filename} 🖌`;
+                    if (comment.body.trim() === '') {
+                        octokitIssues.deleteComment({
+                            owner: repo.owner,
+                            repo: repo.repo,
+                            comment_id: comment.id,
+                        });
+                    }
+                }
             }
         }
     }

@@ -170,7 +170,10 @@ const main = async (): Promise<void> => {
     const text = await AzureOpenAIExec(prompt);
     core.setOutput('text', text.replace(/(\r\n|\n|\r|'|"|`|)/gm, '')); // The output of this action is the text from OpenAI trimmed and escaped
 
-    if (core.getInput('bot-comment', { required: false }) === 'true') {
+    if (
+      text !== '' &&
+      core.getInput('bot-comment', { required: false }) === 'true'
+    ) {
       const botComment = comments.find(comment => {
         return (
           comment.user?.type === 'Bot' &&
@@ -197,6 +200,30 @@ const main = async (): Promise<void> => {
           repo: context.repo.repo,
           body: output,
         });
+      }
+    }
+  }
+
+  const { data: latestComments } = await octokitIssues.listComments({
+    owner: repo.owner,
+    repo: repo.repo,
+    issue_number: issueNumber,
+  });
+
+  if (latestComments.length > 0) {
+    for (const comment of latestComments) {
+      for (const file of listOfFiles.data) {
+        if (comment.body?.includes(file.filename)) {
+          comment.body.trim() ===
+            `#### Go1 OpenAI Bot Review - ${file.filename} 🖌`;
+          if (comment.body.trim() === '') {
+            octokitIssues.deleteComment({
+              owner: repo.owner,
+              repo: repo.repo,
+              comment_id: comment.id,
+            });
+          }
+        }
       }
     }
   }
