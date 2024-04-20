@@ -83,6 +83,12 @@ const main = async (): Promise<void> => {
     );
   }
 
+  const { data: comments } = await octokitIssues.listComments({
+    owner: repo.owner,
+    repo: repo.repo,
+    issue_number: issueNumber,
+  });
+
   for (const file of listOfFiles.data) {
     const prompt = `Please review the syntax of the file ${file.filename} in pull request #${pullRequestNumber} if it's newly added, deleted, or updated.`;
 
@@ -90,50 +96,30 @@ const main = async (): Promise<void> => {
     core.setOutput('text', text.replace(/(\r\n|\n|\r|'|"|`|)/gm, '')); // The output of this action is the text from OpenAI trimmed and escaped
 
     if (core.getInput('bot-comment', { required: false }) === 'true') {
-      // 1. Retrieve existing bot comments for the PR
-      const { data: comments } = await octokitIssues.listComments({
-        owner: repo.owner,
-        repo: repo.repo,
-        issue_number: issueNumber,
-      });
-      const botComments = comments.filter(comment => {
+      const botComment = comments.find(comment => {
         return (
-          comment.user?.type === 'Bot' &&
-          comment.body?.includes('Go1 OpenAI Bot Review')
+          comment.user?.type === 'Bot' && comment.body?.includes(file.filename)
         );
       });
-      // 2. Prepare format of the comment
-      const output = `#### Go1 OpenAI Bot Review 🖌
+
+      const output = `#### Go1 OpenAI Bot Review - ${file.filename} 🖌
                       ${text}`;
 
-      botComments.forEach(async comment => {
-        await octokitIssues.deleteComment({
-          ...repo,
-          comment_id: comment.id,
+      if (botComment) {
+        octokitIssues.updateComment({
+          owner: context.repo.owner,
+          repo: context.repo.repo,
+          comment_id: botComment.id,
+          body: output,
         });
-      });
-      // if (botComment) {
-      //   octokitIssues.updateComment({
-      //     owner: context.repo.owner,
-      //     repo: context.repo.repo,
-      //     comment_id: botComment.id,
-      //     body: output,
-      //   });
-      // } else {
-      //   octokitIssues.createComment({
-      //     issue_number: context.issue.number,
-      //     owner: context.repo.owner,
-      //     repo: context.repo.repo,
-      //     body: output,
-      //   });
-      // }
-
-      octokitIssues.createComment({
-        issue_number: context.issue.number,
-        owner: context.repo.owner,
-        repo: context.repo.repo,
-        body: output,
-      });
+      } else {
+        octokitIssues.createComment({
+          issue_number: context.issue.number,
+          owner: context.repo.owner,
+          repo: context.repo.repo,
+          body: output,
+        });
+      }
     }
   }
 };
