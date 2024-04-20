@@ -2,7 +2,7 @@ import * as core from '@actions/core';
 import { context } from '@actions/github';
 import { Octokit } from '@octokit/action';
 import { AzureOpenAIExec } from './azure-openai';
-import type { GetResponseTypeFromEndpointMethod } from "@octokit/types";
+import type { GetResponseTypeFromEndpointMethod } from '@octokit/types';
 
 const createOctokitClient = () => {
   const octokitClient = new Octokit();
@@ -40,7 +40,7 @@ const main = async (): Promise<void> => {
   const pullRequestNumber = pull_request.number;
   const { octokitPullRequest, octokitIssues } = createOctokitClient();
 
-  const {data: listAssignees} = await octokitIssues.listAssignees({
+  const { data: listAssignees } = await octokitIssues.listAssignees({
     ...repo,
     issue_number: issueNumber,
   });
@@ -69,7 +69,11 @@ const main = async (): Promise<void> => {
       format: 'diff',
     },
   };
-  const {data: { body }, status }: GetResponseTypeFromEndpointMethod<typeof octokitPullRequest.get> = await octokitPullRequest.get(requestBaseParams);
+  const {
+    data: { body },
+    status,
+  }: GetResponseTypeFromEndpointMethod<typeof octokitPullRequest.get> =
+    await octokitPullRequest.get(requestBaseParams);
   if (status !== 200) {
     core.setFailed(
       `The GitHub API for comparing the base and head commits for this ${eventName} event returned ${status}, expected 200. ` +
@@ -79,16 +83,16 @@ const main = async (): Promise<void> => {
 
   const listOfFiles = await octokitPullRequest.listFiles(requestBaseParams);
   if (!body) {
-    let prompt = `Generate a description for pull request #${pullRequestNumber} in the repository ${repo}.`;
-    prompt += `The pull request includes changes in the following files: ${listOfFiles.data.map(file => file.filename).join(', ')}.`
+    let prompt = `Generate a concise description in a form of bullet points if possible for pull request #${pullRequestNumber} in the repository ${repo}.`;
+    prompt += `The pull request includes changes in the following files: ${listOfFiles.data.map(file => file.filename).join(', ')}.`;
 
     const text = await AzureOpenAIExec(prompt);
     core.setOutput('text', text.replace(/(\r\n|\n|\r|'|"|`|)/gm, ''));
     octokitPullRequest.update({
       ...repo,
       pull_number: pullRequestNumber,
-      body: text
-    })
+      body: text,
+    });
   }
 
   const numberOfLinesChanged = listOfFiles.data.reduce(
@@ -110,17 +114,37 @@ const main = async (): Promise<void> => {
   });
 
   for (const file of listOfFiles.data) {
-    const prompt = `Review ${file.filename} in PR #${pullRequestNumber} for:
-                  - New additions, deletions, or updates
-                  - Syntax review if logic is present
-                  - Infinite loop potential if logic is present
-                  - Code improvement areas
-                  - Possible security enhancements
-                  - Verify code formatting based on the style guide of the language used
-                  - Check for code duplication
-                  - Validate test coverage
-                  - Suggest removal of unused code or comments
-                  - No need to explain, just provide the feedback.`;
+    let prompt = `Review ${file.filename} in PR #${pullRequestNumber}. Provide concise feedback in bullet points with code snippets if applicable. Skip any non-applicable points:
+
+                  - Code Quality:
+                    - Syntax review
+                    - Code formatting review
+                    - Naming conventions review
+                    - Unused code review
+
+                  - Logic and Complexity:
+                    - Infinite loop potential
+                    - Code improvement areas
+                    - Complexity review
+                    - Code duplication review
+
+                  - Performance and Scalability:
+                    - Performance review
+                    - Scalability review
+
+                  - Security and Error Handling:
+                    - Security review
+                    - Error handling review
+
+                  - Maintainability and Readability:
+                    - Maintainability review
+                    - Readability review
+                    - Comments review
+
+                  - Testing and Documentation:
+                    - Testability review
+                    - Test coverage review
+                    - Documentation review`;
 
     const text = await AzureOpenAIExec(prompt);
     core.setOutput('text', text.replace(/(\r\n|\n|\r|'|"|`|)/gm, '')); // The output of this action is the text from OpenAI trimmed and escaped
