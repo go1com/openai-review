@@ -42,7 +42,7 @@ const main = async (): Promise<void> => {
 
   const listOfFiles = await octokitPullRequest.listFiles({
     ...context.repo,
-    pull_number: pull_request?.number,
+    pull_number: pullRequestNumber,
     mediaType: {
       format: 'diff',
     },
@@ -73,9 +73,7 @@ const main = async (): Promise<void> => {
       Test Coverage: Verifying that new code includes adequate unit tests.
    */
 
-  const prompt = `You are a bot grouping a list of files changed in the specified Pull Request along with their respective paths and types (if possible, determine the programming language) from
-    ${listOfFiles.data}
-    that resulted from the github client. You also print out the json response for the ${listOfFiles} at the end of the comment.`;
+  const prompt = `You are a bot printing out ${listOfFiles.data} and also print out the Pull request json in ${pull_request}`;
 
   // const text = await AzureOpenAIExec(`Write a description for this git diff: \n ${response.data}`);
   const text = await AzureOpenAIExec(prompt);
