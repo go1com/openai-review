@@ -57117,6 +57117,163 @@ exports.limitLinesChanged = limitLinesChanged;
 
 /***/ }),
 
+/***/ 4596:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.writeBotComments = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+const azure_openai_1 = __nccwpck_require__(4370);
+const listComments = async (issues, context, issueNumber) => {
+    const result = await issues.listComments({
+        ...context.repo,
+        issue_number: issueNumber,
+    });
+    if (result.status !== 200) {
+        core.setFailed(`The GitHub API for listing comments of this Pull Requests returned ${result.status}, expected 200. `);
+        return 'request failed';
+    }
+    return result.data;
+};
+const promptForGeneratingBotComments = (fileName, pullRequestNumber) => {
+    return `Review ${fileName} in PR #${pullRequestNumber}. 
+          Provide concise feedback only on aspects that require attention or improvement. 
+          Use bullet points for each category, including code snippets if applicable.
+          If an aspect is already correct or good or consistent or does not require attention, DO NOT give feedback on this aspect.
+          Focus on areas where improvements are necessary or where issues have been identified:
+
+          - Code Quality:
+            - Check for any syntax errors or unusual constructs.
+            - Review formatting for consistency with project guidelines.
+            - Assess naming conventions for clarity and consistency with best practices.
+            - Identify any unused or redundant code.
+
+          - Logic and Complexity:
+            - Evaluate for potential infinite loops or unoptimized loops.
+            - Suggest improvements to enhance code efficiency or readability.
+            - Review for unnecessary complexity or overly complicated structures.
+            - Check for repeated code blocks that could be simplified or abstracted.
+
+          - Performance and Scalability:
+            - Analyze performance bottlenecks or areas that may not scale well.
+
+          - Security and Error Handling:
+            - Examine the code for potential security vulnerabilities.
+            - Review error handling for robustness against exceptions and edge cases.
+
+          - Maintainability and Readability:
+            - Evaluate the code's maintainability, considering modularity and coupling.
+            - Assess readability and structure of the code.
+            - Check if comments are sufficient and meaningful, especially for complex logic.
+
+          - Testing and Documentation:
+            - Review testability of the code and suggest areas lacking adequate tests.
+            - Assess the coverage and quality of existing tests.
+            - Examine the adequacy of documentation, particularly public interfaces and complex algorithms.`;
+};
+const deleteAllBotCommentsOfAFile = async (issues, context, existingComments, fileName) => {
+    if (core.getInput('bot-comment', { required: false }) === 'true') {
+        const currentCommentsOfTheFile = existingComments.filter(comment => {
+            return (comment.user?.type === 'Bot' &&
+                comment.body?.includes(`#### Go1 OpenAI Bot Review - ${fileName} 🖌`));
+        });
+        if (currentCommentsOfTheFile.length > 0) {
+            for (const comment of currentCommentsOfTheFile) {
+                await issues.deleteComment({
+                    ...context.repo,
+                    issue_number: context.issue.number,
+                    comment_id: comment.id,
+                });
+            }
+        }
+    }
+};
+const deleteObsoleteBotCommentsOfAFile = async (issues, context, obsolleteComments) => {
+    const deletePromises = obsolleteComments.map(comment => issues.deleteComment({
+        ...context.repo,
+        issue_number: context.issue.number,
+        comment_id: comment.id,
+    }));
+    await Promise.all(deletePromises);
+};
+const writeBotComments = async (issues, context, issueNumber, pullRequestNumber, listOfFiles) => {
+    for (const file of listOfFiles) {
+        const existingComments = await listComments(issues, context, issueNumber);
+        if (typeof existingComments === 'string')
+            return;
+        const prompt = promptForGeneratingBotComments(file.filename, pullRequestNumber);
+        const text = await (0, azure_openai_1.AzureOpenAIExec)(prompt);
+        core.setOutput('text', text.replace(/(\r\n|\n|\r|'|"|`|)/gm, '')); // The output of this action is the text from OpenAI trimmed and escaped
+        if (text === '') {
+            await deleteAllBotCommentsOfAFile(issues, context, existingComments, file.filename);
+            continue;
+        }
+        const output = `#### Go1 OpenAI Bot Review - ${file.filename} 🖌
+                    ${text}`;
+        if (core.getInput('bot-comment', { required: false }) === 'true') {
+            const currentCommentsOfTheFile = existingComments.filter(comment => {
+                return (comment.user?.type === 'Bot' &&
+                    comment.body?.includes(`#### Go1 OpenAI Bot Review - ${file.filename} 🖌`));
+            });
+            if (currentCommentsOfTheFile.length === 0) {
+                await issues.createComment({
+                    issue_number: context.issue.number,
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    body: output,
+                });
+            }
+            else if (currentCommentsOfTheFile.length === 1) {
+                await issues.updateComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    comment_id: currentCommentsOfTheFile[0].id,
+                    body: output,
+                });
+            }
+            else {
+                await issues.updateComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    comment_id: currentCommentsOfTheFile[0].id,
+                    body: output,
+                });
+                currentCommentsOfTheFile.shift();
+                await deleteObsoleteBotCommentsOfAFile(issues, context, currentCommentsOfTheFile);
+            }
+        }
+    }
+};
+exports.writeBotComments = writeBotComments;
+
+
+/***/ }),
+
 /***/ 4638:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -57223,7 +57380,7 @@ const getPullRequest = async (pullRequestRest, params, pullRequestNumber) => {
 exports.getPullRequest = getPullRequest;
 const addPullRequestDescription = async (pullRequestRest, pullRequestNumber, pullRequest, context, listOfFiles) => {
     if (!pullRequest.body) {
-        let prompt = `Generate a concise description for pull request #${pullRequestNumber} in the repository ${context.repo.repo}.
+        const prompt = `Generate a concise description for pull request #${pullRequestNumber} in the repository ${context.repo.repo}.
                   - The pull request includes changes in the following files: ${listOfFiles.map(file => file.filename).join(', ')}.
                   - The description should provide a high-level overview of the changes and the purpose of the pull request.`;
         const text = await (0, azure_openai_1.AzureOpenAIExec)(prompt);
@@ -57291,12 +57448,12 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
 const github_1 = __nccwpck_require__(5438);
 const action_1 = __nccwpck_require__(1231);
-const azure_openai_1 = __nccwpck_require__(4370);
 const event_name_check_1 = __nccwpck_require__(4638);
 const pull_request_1 = __nccwpck_require__(5050);
 const assignees_1 = __nccwpck_require__(4950);
 const reviewers_1 = __nccwpck_require__(6277);
 const changed_files_1 = __nccwpck_require__(8034);
+const comments_1 = __nccwpck_require__(4596);
 const createOctokitClient = () => {
     const octokitClient = new action_1.Octokit();
     return {
@@ -57334,87 +57491,7 @@ const main = async () => {
     await (0, pull_request_1.addPullRequestDescription)(octokitPullRequest, pullRequestNumber, pullRequest, github_1.context, listOfFiles);
     if (!(0, changed_files_1.limitLinesChanged)(listOfFiles))
         return;
-    const { data: comments } = await octokitIssues.listComments({
-        owner: repo.owner,
-        repo: repo.repo,
-        issue_number: issueNumber,
-    });
-    if (comments.length > listOfFiles.length) {
-        const unusedComments = comments.filter(comment => {
-            return !listOfFiles.some(file => comment.body?.includes(file.filename));
-        });
-        if (unusedComments.length > 0) {
-            for (const comment of unusedComments) {
-                octokitIssues.deleteComment({
-                    owner: repo.owner,
-                    repo: repo.repo,
-                    comment_id: comment.id,
-                });
-            }
-        }
-    }
-    for (const file of listOfFiles) {
-        let prompt = `Review ${file.filename} in PR #${pullRequestNumber}. 
-                  Provide concise feedback only on aspects that require attention or improvement. 
-                  Use bullet points for each category, including code snippets if applicable.
-                  If an aspect is already correct or good or consistent or does not require attention, do not give feedback on this aspect.
-                  Focus on areas where improvements are necessary or where issues have been identified:
-
-                  - Code Quality:
-                    - Check for any syntax errors or unusual constructs.
-                    - Review formatting for consistency with project guidelines.
-                    - Assess naming conventions for clarity and consistency with best practices.
-                    - Identify any unused or redundant code.
-
-                  - Logic and Complexity:
-                    - Evaluate for potential infinite loops or unoptimized loops.
-                    - Suggest improvements to enhance code efficiency or readability.
-                    - Review for unnecessary complexity or overly complicated structures.
-                    - Check for repeated code blocks that could be simplified or abstracted.
-
-                  - Performance and Scalability:
-                    - Analyze performance bottlenecks or areas that may not scale well.
-
-                  - Security and Error Handling:
-                    - Examine the code for potential security vulnerabilities.
-                    - Review error handling for robustness against exceptions and edge cases.
-
-                  - Maintainability and Readability:
-                    - Evaluate the code's maintainability, considering modularity and coupling.
-                    - Assess readability and structure of the code.
-                    - Check if comments are sufficient and meaningful, especially for complex logic.
-
-                  - Testing and Documentation:
-                    - Review testability of the code and suggest areas lacking adequate tests.
-                    - Assess the coverage and quality of existing tests.
-                    - Examine the adequacy of documentation, particularly public interfaces and complex algorithms.`;
-        const text = await (0, azure_openai_1.AzureOpenAIExec)(prompt);
-        core.setOutput('text', text.replace(/(\r\n|\n|\r|'|"|`|)/gm, '')); // The output of this action is the text from OpenAI trimmed and escaped
-        if (core.getInput('bot-comment', { required: false }) === 'true') {
-            const botComment = comments.find(comment => {
-                return (comment.user?.type === 'Bot' &&
-                    comment.body?.includes(`#### Go1 OpenAI Bot Review - ${file.filename} 🖌`));
-            });
-            const output = `#### Go1 OpenAI Bot Review - ${file.filename} 🖌
-                      ${text}`;
-            if (botComment) {
-                octokitIssues.updateComment({
-                    owner: github_1.context.repo.owner,
-                    repo: github_1.context.repo.repo,
-                    comment_id: botComment.id,
-                    body: output,
-                });
-            }
-            else {
-                octokitIssues.createComment({
-                    issue_number: github_1.context.issue.number,
-                    owner: github_1.context.repo.owner,
-                    repo: github_1.context.repo.repo,
-                    body: output,
-                });
-            }
-        }
-    }
+    await (0, comments_1.writeBotComments)(octokitIssues, github_1.context, issueNumber, pullRequestNumber, listOfFiles);
 };
 main().catch(err => {
     if (err instanceof Error) {

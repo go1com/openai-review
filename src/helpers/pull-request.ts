@@ -52,7 +52,7 @@ export const addPullRequestDescription = async (
   listOfFiles: RestEndpointMethodTypes['pulls']['listFiles']['response']['data'],
 ) => {
   if (!pullRequest.body) {
-    let prompt = `Generate a concise description for pull request #${pullRequestNumber} in the repository ${context.repo.repo}.
+    const prompt = `Generate a concise description for pull request #${pullRequestNumber} in the repository ${context.repo.repo}.
                   - The pull request includes changes in the following files: ${listOfFiles.map(file => file.filename).join(', ')}.
                   - The description should provide a high-level overview of the changes and the purpose of the pull request.`;
 
