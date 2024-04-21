@@ -57485,6 +57485,12 @@ const main = async () => {
     const pullRequest = await (0, pull_request_1.getPullRequest)(octokitPullRequest, requestBaseParams, pullRequestNumber);
     if (!pullRequest)
         return;
+    // test
+    octokitIssues.createComment({
+        ...github_1.context.repo,
+        issue_number: issueNumber,
+        body: `Title: ${pullRequest.title}\n\n Description: ${pullRequest.body}`,
+    });
     const listOfFiles = await (0, changed_files_1.getChangedFiles)(octokitPullRequest, requestBaseParams);
     if (!listOfFiles)
         return;
