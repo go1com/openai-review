@@ -72,6 +72,7 @@ const main = async (): Promise<void> => {
   );
 
   if (!limitLinesChanged(listOfFiles)) return;
+
   await writeBotComments(
     octokitIssues,
     context,
