@@ -20,7 +20,7 @@ export const getChangedFiles = async (
 
 export const limitLinesChanged = (
   listOfFiles: RestEndpointMethodTypes['pulls']['listFiles']['response']['data'],
-) => {
+): boolean => {
   const numberOfLinesChanged = listOfFiles.reduce(
     (total, file) => total + file.changes + file.additions + file.deletions,
     0,
@@ -31,5 +31,8 @@ export const limitLinesChanged = (
       `The commit has too many changes. ` +
         "Please submit an issue on this action's GitHub repo.",
     );
+    return false;
   }
+
+  return true;
 };

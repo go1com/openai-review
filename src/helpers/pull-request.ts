@@ -19,13 +19,13 @@ export const getPullRequestNumber = (
 };
 
 export const getPullRequest = async (
-  pullRequest: Octokit['rest']['pulls'],
+  pullRequestRest: Octokit['rest']['pulls'],
   params: RestEndpointMethodTypes['pulls']['get']['parameters'],
   pullRequestNumber: number,
 ): Promise<
   RestEndpointMethodTypes['pulls']['get']['response']['data'] | null
 > => {
-  const result = await pullRequest.get({
+  const result = await pullRequestRest.get({
     ...params,
     headers: {
       Accept: 'application/vnd.github+json,application/vnd.github.diff',
@@ -45,20 +45,20 @@ export const getPullRequest = async (
 };
 
 export const addPullRequestDescription = async (
-  pullRequest: Octokit['rest']['pulls'],
-  body: RestEndpointMethodTypes['pulls']['get']['response']['data']['body'],
+  pullRequestRest: Octokit['rest']['pulls'],
   pullRequestNumber: number,
+  pullRequest: RestEndpointMethodTypes['pulls']['get']['response']['data'],
   context: Context,
   listOfFiles: RestEndpointMethodTypes['pulls']['listFiles']['response']['data'],
 ) => {
-  if (!body) {
+  if (!pullRequest.body) {
     let prompt = `Generate a concise description for pull request #${pullRequestNumber} in the repository ${context.repo.repo}.
                   - The pull request includes changes in the following files: ${listOfFiles.map(file => file.filename).join(', ')}.
                   - The description should provide a high-level overview of the changes and the purpose of the pull request.`;
 
     const text = await AzureOpenAIExec(prompt);
     core.setOutput('text', text.replace(/(\r\n|\n|\r|'|"|`|)/gm, ''));
-    await pullRequest.update({
+    await pullRequestRest.update({
       ...context.repo,
       pull_number: pullRequestNumber,
       body: text,

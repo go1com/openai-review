@@ -57063,6 +57063,60 @@ exports.addAssignees = addAssignees;
 
 /***/ }),
 
+/***/ 8034:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.limitLinesChanged = exports.getChangedFiles = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+const getChangedFiles = async (pullRequest, requestParams) => {
+    const result = await pullRequest.listFiles(requestParams);
+    if (result.status !== 200) {
+        core.setFailed(`The GitHub API for listing changedFiles of this Pull Requests returned ${result.status}, expected 200. `);
+        return null;
+    }
+    return result.data;
+};
+exports.getChangedFiles = getChangedFiles;
+const limitLinesChanged = (listOfFiles) => {
+    const numberOfLinesChanged = listOfFiles.reduce((total, file) => total + file.changes + file.additions + file.deletions, 0);
+    if (numberOfLinesChanged > 2048) {
+        core.setFailed(`The commit has too many changes. ` +
+            "Please submit an issue on this action's GitHub repo.");
+        return false;
+    }
+    return true;
+};
+exports.limitLinesChanged = limitLinesChanged;
+
+
+/***/ }),
+
 /***/ 4638:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -57152,8 +57206,8 @@ const getPullRequestNumber = (payload) => {
     return payload.pull_request.number;
 };
 exports.getPullRequestNumber = getPullRequestNumber;
-const getPullRequest = async (pullRequest, params, pullRequestNumber) => {
-    const result = await pullRequest.get({
+const getPullRequest = async (pullRequestRest, params, pullRequestNumber) => {
+    const result = await pullRequestRest.get({
         ...params,
         headers: {
             Accept: 'application/vnd.github+json,application/vnd.github.diff',
@@ -57167,14 +57221,14 @@ const getPullRequest = async (pullRequest, params, pullRequestNumber) => {
     return result.data;
 };
 exports.getPullRequest = getPullRequest;
-const addPullRequestDescription = async (pullRequest, body, pullRequestNumber, context, listOfFiles) => {
-    if (!body) {
+const addPullRequestDescription = async (pullRequestRest, pullRequestNumber, pullRequest, context, listOfFiles) => {
+    if (!pullRequest.body) {
         let prompt = `Generate a concise description for pull request #${pullRequestNumber} in the repository ${context.repo.repo}.
                   - The pull request includes changes in the following files: ${listOfFiles.map(file => file.filename).join(', ')}.
                   - The description should provide a high-level overview of the changes and the purpose of the pull request.`;
         const text = await (0, azure_openai_1.AzureOpenAIExec)(prompt);
         core.setOutput('text', text.replace(/(\r\n|\n|\r|'|"|`|)/gm, ''));
-        await pullRequest.update({
+        await pullRequestRest.update({
             ...context.repo,
             pull_number: pullRequestNumber,
             body: text,
@@ -57242,6 +57296,7 @@ const event_name_check_1 = __nccwpck_require__(4638);
 const pull_request_1 = __nccwpck_require__(5050);
 const assignees_1 = __nccwpck_require__(4950);
 const reviewers_1 = __nccwpck_require__(6277);
+const changed_files_1 = __nccwpck_require__(8034);
 const createOctokitClient = () => {
     const octokitClient = new action_1.Octokit();
     return {
@@ -57271,32 +57326,22 @@ const main = async () => {
         },
     };
     const pullRequest = await (0, pull_request_1.getPullRequest)(octokitPullRequest, requestBaseParams, pullRequestNumber);
-    const listOfFiles = await octokitPullRequest.listFiles(requestBaseParams);
-    if (!pullRequest?.body || pullRequest.body?.length === 0) {
-        let prompt = `Generate a concise description for pull request #${pullRequestNumber} in the repository ${repo}.
-                  - The pull request includes changes in the following files: ${listOfFiles.data.map(file => file.filename).join(', ')}.
-                  - The description should provide a high-level overview of the changes and the purpose of the pull request.`;
-        const text = await (0, azure_openai_1.AzureOpenAIExec)(prompt);
-        core.setOutput('text', text.replace(/(\r\n|\n|\r|'|"|`|)/gm, ''));
-        octokitPullRequest.update({
-            ...repo,
-            pull_number: pullRequestNumber,
-            body: text,
-        });
-    }
-    const numberOfLinesChanged = listOfFiles.data.reduce((total, file) => total + file.changes + file.additions + file.deletions, 0);
-    if (numberOfLinesChanged > 2048) {
-        core.setFailed(`The commit has too many changes. ` +
-            "Please submit an issue on this action's GitHub repo.");
-    }
+    if (!pullRequest)
+        return;
+    const listOfFiles = await (0, changed_files_1.getChangedFiles)(octokitPullRequest, requestBaseParams);
+    if (!listOfFiles)
+        return;
+    await (0, pull_request_1.addPullRequestDescription)(octokitPullRequest, pullRequestNumber, pullRequest, github_1.context, listOfFiles);
+    if (!(0, changed_files_1.limitLinesChanged)(listOfFiles))
+        return;
     const { data: comments } = await octokitIssues.listComments({
         owner: repo.owner,
         repo: repo.repo,
         issue_number: issueNumber,
     });
-    if (comments.length > listOfFiles.data.length) {
+    if (comments.length > listOfFiles.length) {
         const unusedComments = comments.filter(comment => {
-            return !listOfFiles.data.some(file => comment.body?.includes(file.filename));
+            return !listOfFiles.some(file => comment.body?.includes(file.filename));
         });
         if (unusedComments.length > 0) {
             for (const comment of unusedComments) {
@@ -57308,7 +57353,7 @@ const main = async () => {
             }
         }
     }
-    for (const file of listOfFiles.data) {
+    for (const file of listOfFiles) {
         let prompt = `Review ${file.filename} in PR #${pullRequestNumber}. 
                   Provide concise feedback only on aspects that require attention or improvement. 
                   Use bullet points for each category, including code snippets if applicable.

@@ -2,11 +2,15 @@ import * as core from '@actions/core';
 import { context } from '@actions/github';
 import { Octokit } from '@octokit/action';
 import { AzureOpenAIExec } from './azure-openai';
-import type { GetResponseTypeFromEndpointMethod } from '@octokit/types';
 import { checkEventName } from './helpers/event-name-check';
-import { getPullRequest, getPullRequestNumber } from './helpers/pull-request';
+import {
+  addPullRequestDescription,
+  getPullRequest,
+  getPullRequestNumber,
+} from './helpers/pull-request';
 import { addAssignees } from './helpers/assignees';
 import { addReviewers } from './helpers/reviewers';
+import { getChangedFiles, limitLinesChanged } from './helpers/changed-files';
 
 const createOctokitClient = () => {
   const octokitClient = new Octokit();
@@ -51,33 +55,23 @@ const main = async (): Promise<void> => {
     requestBaseParams,
     pullRequestNumber,
   );
+  if (!pullRequest) return;
 
-  const listOfFiles = await octokitPullRequest.listFiles(requestBaseParams);
-  if (!pullRequest?.body || pullRequest.body?.length === 0) {
-    let prompt = `Generate a concise description for pull request #${pullRequestNumber} in the repository ${repo}.
-                  - The pull request includes changes in the following files: ${listOfFiles.data.map(file => file.filename).join(', ')}.
-                  - The description should provide a high-level overview of the changes and the purpose of the pull request.`;
+  const listOfFiles = await getChangedFiles(
+    octokitPullRequest,
+    requestBaseParams,
+  );
+  if (!listOfFiles) return;
 
-    const text = await AzureOpenAIExec(prompt);
-    core.setOutput('text', text.replace(/(\r\n|\n|\r|'|"|`|)/gm, ''));
-    octokitPullRequest.update({
-      ...repo,
-      pull_number: pullRequestNumber,
-      body: text,
-    });
-  }
-
-  const numberOfLinesChanged = listOfFiles.data.reduce(
-    (total, file) => total + file.changes + file.additions + file.deletions,
-    0,
+  await addPullRequestDescription(
+    octokitPullRequest,
+    pullRequestNumber,
+    pullRequest,
+    context,
+    listOfFiles,
   );
 
-  if (numberOfLinesChanged > 2048) {
-    core.setFailed(
-      `The commit has too many changes. ` +
-        "Please submit an issue on this action's GitHub repo.",
-    );
-  }
+  if (!limitLinesChanged(listOfFiles)) return;
 
   const { data: comments } = await octokitIssues.listComments({
     owner: repo.owner,
@@ -85,11 +79,9 @@ const main = async (): Promise<void> => {
     issue_number: issueNumber,
   });
 
-  if (comments.length > listOfFiles.data.length) {
+  if (comments.length > listOfFiles.length) {
     const unusedComments = comments.filter(comment => {
-      return !listOfFiles.data.some(file =>
-        comment.body?.includes(file.filename),
-      );
+      return !listOfFiles.some(file => comment.body?.includes(file.filename));
     });
     if (unusedComments.length > 0) {
       for (const comment of unusedComments) {
@@ -102,7 +94,7 @@ const main = async (): Promise<void> => {
     }
   }
 
-  for (const file of listOfFiles.data) {
+  for (const file of listOfFiles) {
     let prompt = `Review ${file.filename} in PR #${pullRequestNumber}. 
                   Provide concise feedback only on aspects that require attention or improvement. 
                   Use bullet points for each category, including code snippets if applicable.
