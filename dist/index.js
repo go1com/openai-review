@@ -57351,7 +57351,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.addPullRequestDescription = exports.getIssue = exports.getPullRequest = exports.getPullRequestNumber = void 0;
+exports.addPullRequestDescription = exports.getPullRequest = exports.getPullRequestNumber = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const azure_openai_1 = __nccwpck_require__(4370);
 const getPullRequestNumber = (payload) => {
@@ -57378,45 +57378,16 @@ const getPullRequest = async (pullRequestRest, params, pullRequestNumber) => {
     return result.data;
 };
 exports.getPullRequest = getPullRequest;
-const getIssue = async (issuesRest, params, issueNumber) => {
-    const result = await issuesRest.get({
-        ...params,
-        headers: {
-            Accept: 'application/vnd.github+json,application/vnd.github.diff',
-        },
-    });
-    if (result.status !== 200) {
-        core.setFailed(`The GitHub API for getting issue of the pull request #${issueNumber} resulted in status ${result.status}, expected 200. ` +
-            "Please submit an issue on this action's GitHub repo.");
-        return null;
-    }
-    return result.data;
-};
-exports.getIssue = getIssue;
-const addPullRequestDescription = async (issueRequestRest, issueNumber, context, listOfFiles) => {
-    const issue = await (0, exports.getIssue)(issueRequestRest, {
-        ...context.repo,
-        issue_number: issueNumber,
-        mediaType: {
-            format: 'diff',
-        },
-    }, issueNumber);
-    if (!issue)
-        return;
-    issueRequestRest.createComment({
-        ...context.repo,
-        issue_number: issueNumber,
-        body: `${issue.body}`,
-    });
-    if (!issue.body) {
-        const prompt = `Generate a concise description for pull request #${issueNumber} in the repository ${context.repo.repo}.
+const addPullRequestDescription = async (pullRequestRest, pullRequestNumber, pullRequest, context, listOfFiles) => {
+    if (!pullRequest.body) {
+        const prompt = `Generate a concise description for pull request #${pullRequestNumber} in the repository ${context.repo.repo}.
                   - The pull request includes changes in the following files: ${listOfFiles.map(file => file.filename).join(', ')}.
                   - The description should provide a high-level overview of the changes and the purpose of the pull request.`;
         const text = await (0, azure_openai_1.AzureOpenAIExec)(prompt);
         core.setOutput('text', text.replace(/(\r\n|\n|\r|'|"|`|)/gm, ''));
-        await issueRequestRest.update({
+        await pullRequestRest.update({
             ...context.repo,
-            issue_number: issueNumber,
+            pull_number: pullRequestNumber,
             body: text,
         });
     }
@@ -57514,10 +57485,16 @@ const main = async () => {
     const pullRequest = await (0, pull_request_1.getPullRequest)(octokitPullRequest, requestBaseParams, pullRequestNumber);
     if (!pullRequest)
         return;
+    // test
+    octokitIssues.createComment({
+        ...github_1.context.repo,
+        issue_number: issueNumber,
+        body: `${JSON.stringify(pullRequest)}`,
+    });
     const listOfFiles = await (0, changed_files_1.getChangedFiles)(octokitPullRequest, requestBaseParams);
     if (!listOfFiles)
         return;
-    await (0, pull_request_1.addPullRequestDescription)(octokitIssues, issueNumber, github_1.context, listOfFiles);
+    await (0, pull_request_1.addPullRequestDescription)(octokitPullRequest, pullRequestNumber, pullRequest, github_1.context, listOfFiles);
     if (!(0, changed_files_1.limitLinesChanged)(listOfFiles))
         return;
     await (0, comments_1.writeBotComments)(octokitIssues, github_1.context, issueNumber, pullRequestNumber, listOfFiles);

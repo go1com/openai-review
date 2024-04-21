@@ -57,6 +57,13 @@ const main = async (): Promise<void> => {
   );
   if (!pullRequest) return;
 
+  // test
+  octokitIssues.createComment({
+    ...context.repo,
+    issue_number: issueNumber,
+    body: `${JSON.stringify(pullRequest)}`,
+  });
+
   const listOfFiles = await getChangedFiles(
     octokitPullRequest,
     requestBaseParams,
@@ -64,8 +71,9 @@ const main = async (): Promise<void> => {
   if (!listOfFiles) return;
 
   await addPullRequestDescription(
-    octokitIssues,
-    issueNumber,
+    octokitPullRequest,
+    pullRequestNumber,
+    pullRequest,
     context,
     listOfFiles,
   );
