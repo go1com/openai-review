@@ -57489,7 +57489,7 @@ const main = async () => {
     octokitIssues.createComment({
         ...github_1.context.repo,
         issue_number: issueNumber,
-        body: `Id: ${pullRequest.id} \n\n`,
+        body: `${JSON.stringify(pullRequest)}`,
     });
     const listOfFiles = await (0, changed_files_1.getChangedFiles)(octokitPullRequest, requestBaseParams);
     if (!listOfFiles)
