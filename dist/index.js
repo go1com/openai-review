@@ -57222,24 +57222,29 @@ const deleteObsoleteBotCommentsOfAFile = async (issues, context, obsolleteCommen
     await Promise.all(deletePromises);
 };
 const writeBotComments = async (issues, context, issueNumber, pullRequestNumber, listOfFiles) => {
+    const existingComments = await listComments(issues, context, issueNumber);
+    if (typeof existingComments === 'string')
+        return;
     for (const file of listOfFiles) {
-        const existingComments = await listComments(issues, context, issueNumber);
-        if (typeof existingComments === 'string')
-            return;
         const prompt = promptForGeneratingBotComments(file.filename, pullRequestNumber);
         const text = await (0, azure_openai_1.AzureOpenAIExec)(prompt);
         core.setOutput('text', text.replace(/(\r\n|\n|\r|'|"|`|)/gm, '')); // The output of this action is the text from OpenAI trimmed and escaped
-        if (text === '') {
-            await deleteAllBotCommentsOfAFile(issues, context, existingComments, file.filename);
-            continue;
-        }
+        const currentCommentsOfTheFile = existingComments.filter(comment => {
+            return (comment.user?.type === 'Bot' &&
+                comment.body?.includes(`#### Go1 OpenAI Bot Review - ${file.filename} 🖌`));
+        });
+        // if (text === '') {
+        //   await deleteAllBotCommentsOfAFile(
+        //     issues,
+        //     context,
+        //     existingComments,
+        //     file.filename,
+        //   );
+        //   continue;
+        // }
         const output = `#### Go1 OpenAI Bot Review - ${file.filename} 🖌
                     ${text}`;
         if (core.getInput('bot-comment', { required: false }) === 'true') {
-            const currentCommentsOfTheFile = existingComments.filter(comment => {
-                return (comment.user?.type === 'Bot' &&
-                    comment.body?.includes(`#### Go1 OpenAI Bot Review - ${file.filename} 🖌`));
-            });
             if (currentCommentsOfTheFile.length === 0) {
                 await issues.createComment({
                     issue_number: context.issue.number,
@@ -57263,8 +57268,12 @@ const writeBotComments = async (issues, context, issueNumber, pullRequestNumber,
                     comment_id: currentCommentsOfTheFile[0].id,
                     body: output,
                 });
-                currentCommentsOfTheFile.shift();
-                await deleteObsoleteBotCommentsOfAFile(issues, context, currentCommentsOfTheFile);
+                // currentCommentsOfTheFile.shift();
+                // await deleteObsoleteBotCommentsOfAFile(
+                //   issues,
+                //   context,
+                //   currentCommentsOfTheFile,
+                // );
             }
         }
     }
