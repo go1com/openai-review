@@ -127,7 +127,7 @@ export const writeBotComments = async (
     const checkCodeQuality = `Review ${file.filename} in PR #${pullRequestNumber}. 
     Provide concise feedback only on aspects that require attention or improvement. 
     Use bullet points for each category, including code snippets if applicable.
-    If an aspect is already correct or good or consistent or does not require attention do not return feedback.
+    If an aspect is already correct or good or consistent or does not require attention, DO NOT give feedback.
     Focus on areas where improvements are necessary:
 
     - Code Quality:
@@ -140,7 +140,7 @@ export const writeBotComments = async (
     const checkLogicAndComplexity = `Review ${file.filename} in PR #${pullRequestNumber}. 
     Provide concise feedback only on aspects that require attention or improvement. 
     Use bullet points for each category, including code snippets if applicable.
-    If an aspect is already correct or good or consistent or does not require attention do not return feedback.
+    If an aspect is already correct or good or consistent or does not require attention, DO NOT give feedback.
     Focus on areas where improvements are necessary:
 
     - Logic and Complexity:
