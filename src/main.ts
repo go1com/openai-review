@@ -61,7 +61,8 @@ const main = async (): Promise<void> => {
   octokitIssues.createComment({
     ...context.repo,
     issue_number: issueNumber,
-    body: `Head: ${pullRequest.head}\n\n`,
+    body: `Base: ${pullRequest.base}\n\n 
+    Assignee: ${pullRequest.assignees} \n\n`,
   });
 
   const listOfFiles = await getChangedFiles(
