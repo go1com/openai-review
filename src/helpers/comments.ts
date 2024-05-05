@@ -36,13 +36,13 @@ const promptForGeneratingBotComments = (
   - Use bullet points when applicable for easy reading.`;
   
   const condition1 = `Answer yes or no for this question.`;
-  const condition2 = `If no, skip this, do not write anything. If yes, provide review with the following instruction: ${overalInstructions}. `
+  const condition2 = `If the answer is no, remove this item, do not write anything. If the answer is yes, provide review with the following instruction: ${overalInstructions}. `
 
   const codeQuality = `Code quality:
   - ${condition1}. Are there any syntax errors or unusual constructs? ${condition2}.
   - ${condition1}. Are naming conventions clear and consistent with best practices? ${condition2}.
   - ${condition1}. Are there any unused or redundant code? ${condition2}
-  - If there is no code quality issue, remove this section.`;
+  - If there is no code quality issue for the above questions of this category, remove this section entirely.`;
 
   const logicAndComplexity = `Logic and complexity:
   - ${condition1}. Are there any potential infinite loops or unoptimized loops? ${condition2}.
