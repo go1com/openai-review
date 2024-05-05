@@ -57164,23 +57164,24 @@ const promptForGeneratingBotComments = (fileName, pullRequestNumber) => {
   - Use simple and concise language.
   - Use bullet points when applicable for easy reading.
   - Include recommended code snippets where applicable`;
-    const condition = `If not, skip this, do not write anything. If yes, provide review with the following instruction: ${overalInstructions}. `;
+    const condition1 = `Answer yes or no for this question.`;
+    const condition2 = `If no, skip this, do not write anything. If yes, provide review with the following instruction: ${overalInstructions}. `;
     const codeQuality = `Code quality:
-  - Are there any syntax errors or unusual constructs? ${condition}.
-  - Are naming conventions clear and consistent with best practices? ${condition}.
-  - Are there any unused or redundant code? ${condition}`;
+  - ${condition1}. Are there any syntax errors or unusual constructs? ${condition2}.
+  - ${condition1}. Are naming conventions clear and consistent with best practices? ${condition2}.
+  - ${condition1}. Are there any unused or redundant code? ${condition2}`;
     const logicAndComplexity = `Logic and complexity:
-  - Are there any potential infinite loops or unoptimized loops? ${condition}.
-  - Are there any areas that could be simplified or abstracted? ${condition}.
-  - Are there any unnecessary complexity or overly complicated structures? ${condition}.`;
+  - ${condition1}. Are there any potential infinite loops or unoptimized loops? ${condition2}.
+  - ${condition1}. Are there any areas that could be simplified or abstracted? ${condition2}.
+  - ${condition1}. Are there any unnecessary complexity or overly complicated structures? ${condition2}.`;
     const performanceAndScalability = `Performance and Scalability:
-  - Are there any performance bottlenecks or areas that may not scale well? ${condition}.`;
+  - ${condition1}. Are there any performance bottlenecks or areas that may not scale well? ${condition2}.`;
     const securityAndErrorHandling = `Security and Error Handling:
-  - Are there any potential security vulnerabilities? ${condition}.
-  - Are there any error handling for robustness against exceptions and edge cases? ${condition}.`;
+  - ${condition1}. Are there any potential security vulnerabilities? ${condition2}.
+  - ${condition1}. Are there any error handling for robustness against exceptions and edge cases? ${condition2}.`;
     const testingAndDocumentation = `Testing and Documentation:
-  - Are there any missing or inadequate tests? ${condition}.
-  - Are there any missing or inadequate documentation? ${condition}.`;
+  - ${condition1}. Are there any missing or inadequate tests? ${condition2}.
+  - ${condition1}. Are there any missing or inadequate documentation? ${condition2}.`;
     return `Write code review for ${fileName} in PR #${pullRequestNumber}. 
   Categories to review:
   1. ${codeQuality}
