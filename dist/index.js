@@ -57164,7 +57164,7 @@ const promptForGeneratingBotComments = (fileName, pullRequestNumber) => {
   - Use simple and concise language.
   - Use bullet points when applicable for easy reading.
   - Include recommended code snippets where applicable`;
-    const condition = `If not, skip this item, do not write anything. If yes, provide review with the following instruction: ${overalInstructions}. `;
+    const condition = `If not, skip this, do not write anything. If yes, provide review with the following instruction: ${overalInstructions}. `;
     const codeQuality = `Code quality:
   - Are there any syntax errors or unusual constructs? ${condition}.
   - Are naming conventions clear and consistent with best practices? ${condition}.
@@ -57228,11 +57228,11 @@ const writeBotComments = async (issues, context, issueNumber, pullRequestNumber,
         });
         if (text === '') {
             if (currentCommentsOfTheFile.length > 0) {
-                await deleteObsoleteBotCommentsOfAFile(issues, context, currentCommentsOfTheFile);
+                await (0, exports.deleteAllBotCommentsOfAFile)(issues, context, existingComments, file.filename);
             }
             continue;
         }
-        core.setOutput('text', text.replace(/(\r\n|\n|\r|'|"|`|)/gm, '')); // The output of this action is the text from OpenAI trimmed and escaped
+        core.setOutput('text', text.replace(/(\r\n|\n|\r|'|"|)/gm, '')); // The output of this action is the text from OpenAI trimmed and escaped
         const output = `#### Jason Derulo Review - ${file.filename} 🖌
                     ${text}`;
         if (core.getInput('bot-comment', { required: false }) === 'true') {
