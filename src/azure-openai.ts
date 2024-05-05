@@ -10,7 +10,6 @@ export const AzureOpenAIExec = async (prompt: string): Promise<string> => {
 
   const { choices } = await client.getCompletions(
     core.getInput("model"),
-    // core.getInput("openai-prompt"),
     prompt,
     {
       maxTokens: 256,

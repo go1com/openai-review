@@ -30,12 +30,19 @@ const promptForGeneratingBotComments = (
   fileName: string,
   pullRequestNumber: number,
 ): string => {
-  return `Review ${fileName} in PR #${pullRequestNumber}. 
-          Provide concise feedback only on aspects that require attention or improvement. 
-          Use bullet points for each category, including code snippets if applicable.
-          If an aspect is already correct or good or consistent or does not require attention, DO NOT give feedback on this aspect.
-          Focus on areas where improvements are necessary or where issues have been identified:
+  return `Write code review for ${fileName} in PR #${pullRequestNumber}. 
+          
+          Overal instructions: 
+          - Code review should only have maximum of 200 words.
+          - Only provide feedback on the given categories that require attention or improvement. 
+          - Do not write or give any feedback on a category that does not require attention or improvement.
 
+          How code review should be written:
+          - Write in a simple and concise language.
+          - Use bullet points to explain for easy reading.
+          - Include recommended code snippets where applicable
+
+          Categories to review:
           - Code Quality:
             - Check for any syntax errors or unusual constructs.
             - Review formatting for consistency with project guidelines.
@@ -66,7 +73,7 @@ const promptForGeneratingBotComments = (
             - Examine the adequacy of documentation, particularly public interfaces and complex algorithms.`;
 };
 
-const deleteAllBotCommentsOfAFile = async (
+export const deleteAllBotCommentsOfAFile = async (
   issues: Octokit['rest']['issues'],
   context: Context,
   existingComments: RestEndpointMethodTypes['issues']['listComments']['response']['data'],
@@ -76,7 +83,7 @@ const deleteAllBotCommentsOfAFile = async (
     const currentCommentsOfTheFile = existingComments.filter(comment => {
       return (
         comment.user?.type === 'Bot' &&
-        comment.body?.includes(`#### Go1 OpenAI Bot Review - ${fileName} 🖌`)
+        comment.body?.includes(`#### Jason Derulo Review - ${fileName} 🖌`)
       );
     });
 
@@ -119,62 +126,74 @@ export const writeBotComments = async (
   if (typeof existingComments === 'string') return;
 
   for (const file of listOfFiles) {
-    // const prompt = promptForGeneratingBotComments(
-    //   file.filename,
-    //   pullRequestNumber,
+    const prompt = promptForGeneratingBotComments(
+      file.filename,
+      pullRequestNumber,
+    );
+    const text = await AzureOpenAIExec(prompt);
+
+    // const checkCodeQuality = `Review ${file.filename} in PR #${pullRequestNumber}. 
+    // Provide concise feedback only on aspects that require attention or improvement. 
+    // Use bullet points for each category, including code snippets if applicable.
+    // If an aspect is already correct or good or consistent or does not require attention, DO NOT give feedback.
+    // Focus on areas where improvements are necessary:
+
+    // - Code Quality:
+    //   - Check for any syntax errors or unusual constructs.
+    //   - Review formatting for consistency with project guidelines.
+    //   - Assess naming conventions for clarity and consistency with best practices.
+    //   - Identify any unused or redundant code.`;
+    // const codeQualityReview = await AzureOpenAIExec(checkCodeQuality);
+
+    // const checkLogicAndComplexity = `Review ${file.filename} in PR #${pullRequestNumber}. 
+    // Provide concise feedback only on aspects that require attention or improvement. 
+    // Use bullet points for each category, including code snippets if applicable.
+    // If an aspect is already correct or good or consistent or does not require attention, DO NOT give feedback.
+    // Focus on areas where improvements are necessary:
+
+    // - Logic and Complexity:
+    //   - Evaluate for potential infinite loops or unoptimized loops.
+    //   - Suggest improvements to enhance code efficiency or readability.
+    //   - Review for unnecessary complexity or overly complicated structures.
+    //   - Check for repeated code blocks that could be simplified or abstracted.`;
+    // const logicAndComplexityReview = await AzureOpenAIExec(
+    //   checkLogicAndComplexity,
     // );
 
-    const checkCodeQuality = `Review ${file.filename} in PR #${pullRequestNumber}. 
-    Provide concise feedback only on aspects that require attention or improvement. 
-    Use bullet points for each category, including code snippets if applicable.
-    If an aspect is already correct or good or consistent or does not require attention, DO NOT give feedback.
-    Focus on areas where improvements are necessary:
-
-    - Code Quality:
-      - Check for any syntax errors or unusual constructs.
-      - Review formatting for consistency with project guidelines.
-      - Assess naming conventions for clarity and consistency with best practices.
-      - Identify any unused or redundant code.`;
-    const codeQualityReview = await AzureOpenAIExec(checkCodeQuality);
-
-    const checkLogicAndComplexity = `Review ${file.filename} in PR #${pullRequestNumber}. 
-    Provide concise feedback only on aspects that require attention or improvement. 
-    Use bullet points for each category, including code snippets if applicable.
-    If an aspect is already correct or good or consistent or does not require attention, DO NOT give feedback.
-    Focus on areas where improvements are necessary:
-
-    - Logic and Complexity:
-      - Evaluate for potential infinite loops or unoptimized loops.
-      - Suggest improvements to enhance code efficiency or readability.
-      - Review for unnecessary complexity or overly complicated structures.
-      - Check for repeated code blocks that could be simplified or abstracted.`;
-    const logicAndComplexityReview = await AzureOpenAIExec(
-      checkLogicAndComplexity,
-    );
-
-    const text = codeQualityReview + '\n' + logicAndComplexityReview;
-    if (text === '') {
-      await deleteAllBotCommentsOfAFile(
-        issues,
-        context,
-        existingComments,
-        file.filename,
-      );
-      continue;
-    }
-
-    core.setOutput('text', text.replace(/(\r\n|\n|\r|'|"|`|)/gm, '')); // The output of this action is the text from OpenAI trimmed and escaped
+    // const text = codeQualityReview + '\n' + logicAndComplexityReview;
+    // if (text === '') {
+    //   await deleteAllBotCommentsOfAFile(
+    //     issues,
+    //     context,
+    //     existingComments,
+    //     file.filename,
+    //   );
+    //   continue;
+    // }
 
     const currentCommentsOfTheFile = existingComments.filter(comment => {
       return (
         comment.user?.type === 'Bot' &&
         comment.body?.includes(
-          `#### Go1 OpenAI Bot Review - ${file.filename} 🖌`,
+          `${file.filename}`,
         )
       );
     });
 
-    const output = `#### Go1 OpenAI Bot Review - ${file.filename} 🖌
+    if (text === '') {
+      if (currentCommentsOfTheFile.length > 0) {
+        await deleteObsoleteBotCommentsOfAFile(
+          issues,
+          context,
+          currentCommentsOfTheFile,
+        );
+      }
+
+      continue;
+    }
+
+    core.setOutput('text', text.replace(/(\r\n|\n|\r|'|"|`|)/gm, '')); // The output of this action is the text from OpenAI trimmed and escaped
+    const output = `#### Jason Derulo Review - ${file.filename} 🖌
                     ${text}`;
 
     if (core.getInput('bot-comment', { required: false }) === 'true') {

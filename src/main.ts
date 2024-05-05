@@ -34,10 +34,13 @@ const main = async (): Promise<void> => {
   if (!pullRequestNumber) return;
 
   const { octokitPullRequest, octokitIssues } = createOctokitClient();
+
+  // 1. Assign the issue to the PR author.
   addAssignees(context, octokitIssues, issueNumber);
 
   /**
-   * @todo Add reviewers to the addReviews method.
+   * 2. Add reviewers to the PR.
+   * @todo Assign reviewers to the addReviews method once groups/teams are set on GitHub.
    */
   addReviewers(context, octokitPullRequest, pullRequestNumber);
 
@@ -63,6 +66,7 @@ const main = async (): Promise<void> => {
   );
   if (!listOfFiles) return;
 
+  // 3. Add a description to the PR.
   await addPullRequestDescription(
     octokitPullRequest,
     pullRequestNumber,
@@ -73,6 +77,7 @@ const main = async (): Promise<void> => {
 
   if (!limitLinesChanged(listOfFiles)) return;
 
+  // 4. Write bot comments.
   await writeBotComments(
     octokitIssues,
     context,
