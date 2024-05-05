@@ -57162,26 +57162,30 @@ const promptForGeneratingBotComments = (fileName, pullRequestNumber) => {
     const overalInstructions = `Overal instructions: 
   - Review should have no more than 50 words.
   - Use simple and concise language.
-  - Use bullet points when applicable for easy reading.
-  - Include recommended code snippets where applicable`;
+  - Use bullet points when applicable for easy reading.`;
     const condition1 = `Answer yes or no for this question.`;
     const condition2 = `If no, skip this, do not write anything. If yes, provide review with the following instruction: ${overalInstructions}. `;
     const codeQuality = `Code quality:
   - ${condition1}. Are there any syntax errors or unusual constructs? ${condition2}.
   - ${condition1}. Are naming conventions clear and consistent with best practices? ${condition2}.
-  - ${condition1}. Are there any unused or redundant code? ${condition2}`;
+  - ${condition1}. Are there any unused or redundant code? ${condition2}
+  - If there is no code quality issue, remove this section.`;
     const logicAndComplexity = `Logic and complexity:
   - ${condition1}. Are there any potential infinite loops or unoptimized loops? ${condition2}.
   - ${condition1}. Are there any areas that could be simplified or abstracted? ${condition2}.
-  - ${condition1}. Are there any unnecessary complexity or overly complicated structures? ${condition2}.`;
+  - ${condition1}. Are there any unnecessary complexity or overly complicated structures? ${condition2}.
+  - If there is no logic and complexity issue, remove this section.`;
     const performanceAndScalability = `Performance and Scalability:
-  - ${condition1}. Are there any performance bottlenecks or areas that may not scale well? ${condition2}.`;
+  - ${condition1}. Are there any performance bottlenecks or areas that may not scale well? ${condition2}.
+  - If there is no performance and scalability issue, remove this section.`;
     const securityAndErrorHandling = `Security and Error Handling:
   - ${condition1}. Are there any potential security vulnerabilities? ${condition2}.
-  - ${condition1}. Are there any error handling for robustness against exceptions and edge cases? ${condition2}.`;
+  - ${condition1}. Are there any error handling for robustness against exceptions and edge cases? ${condition2}.
+  - If there is no security and error handling issue, remove this section.`;
     const testingAndDocumentation = `Testing and Documentation:
   - ${condition1}. Are there any missing or inadequate tests? ${condition2}.
-  - ${condition1}. Are there any missing or inadequate documentation? ${condition2}.`;
+  - ${condition1}. Are there any missing or inadequate documentation? ${condition2}.
+  - If there is no testing and documentation issue, remove this section.`;
     return `Write code review for ${fileName} in PR #${pullRequestNumber}. 
   Categories to review:
   1. ${codeQuality}
@@ -57233,7 +57237,7 @@ const writeBotComments = async (issues, context, issueNumber, pullRequestNumber,
             }
             continue;
         }
-        core.setOutput('text', text.replace(/(\r\n|\n|\r|'|"|)/gm, '')); // The output of this action is the text from OpenAI trimmed and escaped
+        core.setOutput('text', text.replace(/(\r\n|\n|\r|'|"|```|)/gm, '')); // The output of this action is the text from OpenAI trimmed and escaped
         const output = `#### Jason Derulo Review - ${file.filename} 🖌
                     ${text}`;
         if (core.getInput('bot-comment', { required: false }) === 'true') {
