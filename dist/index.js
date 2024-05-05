@@ -57159,47 +57159,35 @@ const listComments = async (issues, context, issueNumber) => {
     return result.data;
 };
 const promptForGeneratingBotComments = (fileName, pullRequestNumber) => {
+    const overalInstructions = `Overal instructions: 
+  - Review should have no more than 50 words.
+  - Use simple and concise language.
+  - Use bullet points when applicable for easy reading.
+  - Include recommended code snippets where applicable`;
+    const condition = `If not, skip this item, do not write anything. If yes, provide review with the following instruction: ${overalInstructions}. `;
+    const codeQuality = `Code quality:
+  - Are there any syntax errors or unusual constructs? ${condition}.
+  - Are naming conventions clear and consistent with best practices? ${condition}.
+  - Are there any unused or redundant code? ${condition}`;
+    const logicAndComplexity = `Logic and complexity:
+  - Are there any potential infinite loops or unoptimized loops? ${condition}.
+  - Are there any areas that could be simplified or abstracted? ${condition}.
+  - Are there any unnecessary complexity or overly complicated structures? ${condition}.`;
+    const performanceAndScalability = `Performance and Scalability:
+  - Are there any performance bottlenecks or areas that may not scale well? ${condition}.`;
+    const securityAndErrorHandling = `Security and Error Handling:
+  - Are there any potential security vulnerabilities? ${condition}.
+  - Are there any error handling for robustness against exceptions and edge cases? ${condition}.`;
+    const testingAndDocumentation = `Testing and Documentation:
+  - Are there any missing or inadequate tests? ${condition}.
+  - Are there any missing or inadequate documentation? ${condition}.`;
     return `Write code review for ${fileName} in PR #${pullRequestNumber}. 
-          
-          Overal instructions: 
-          - Code review should only have maximum of 200 words.
-          - Only provide feedback on the given categories that require attention or improvement. 
-          - Do not write or give any feedback on a category that does not require attention or improvement.
-
-          How code review should be written:
-          - Write in a simple and concise language.
-          - Use bullet points to explain for easy reading.
-          - Include recommended code snippets where applicable
-
-          Categories to review:
-          - Code Quality:
-            - Check for any syntax errors or unusual constructs.
-            - Review formatting for consistency with project guidelines.
-            - Assess naming conventions for clarity and consistency with best practices.
-            - Identify any unused or redundant code.
-
-          - Logic and Complexity:
-            - Evaluate for potential infinite loops or unoptimized loops.
-            - Suggest improvements to enhance code efficiency or readability.
-            - Review for unnecessary complexity or overly complicated structures.
-            - Check for repeated code blocks that could be simplified or abstracted.
-
-          - Performance and Scalability:
-            - Analyze performance bottlenecks or areas that may not scale well.
-
-          - Security and Error Handling:
-            - Examine the code for potential security vulnerabilities.
-            - Review error handling for robustness against exceptions and edge cases.
-
-          - Maintainability and Readability:
-            - Evaluate the code's maintainability, considering modularity and coupling.
-            - Assess readability and structure of the code.
-            - Check if comments are sufficient and meaningful, especially for complex logic.
-
-          - Testing and Documentation:
-            - Review testability of the code and suggest areas lacking adequate tests.
-            - Assess the coverage and quality of existing tests.
-            - Examine the adequacy of documentation, particularly public interfaces and complex algorithms.`;
+  Categories to review:
+  1. ${codeQuality}
+  2. ${logicAndComplexity}
+  3. ${performanceAndScalability}
+  4. ${securityAndErrorHandling}
+  5. ${testingAndDocumentation}`;
 };
 const deleteAllBotCommentsOfAFile = async (issues, context, existingComments, fileName) => {
     if (core.getInput('bot-comment', { required: false }) === 'true') {
@@ -57238,16 +57226,6 @@ const writeBotComments = async (issues, context, issueNumber, pullRequestNumber,
             return (comment.user?.type === 'Bot' &&
                 comment.body?.includes(`${file.filename}`));
         });
-        file.patch = file.patch?.replace(/@@ -\d+,\d+ \+\d+,\d+ @@/g, '');
-        if (file.patch) {
-            issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: file.patch,
-            });
-            continue;
-        }
         if (text === '') {
             if (currentCommentsOfTheFile.length > 0) {
                 await deleteObsoleteBotCommentsOfAFile(issues, context, currentCommentsOfTheFile);
