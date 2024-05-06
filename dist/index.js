@@ -57054,13 +57054,25 @@ const addAssignees = async (context, issues, issueNumber) => {
             assignees: [context.actor],
         });
     }
+    else if (assignees.filter(assignee => assignee.login === context.actor).length === 0) {
+        await issues.removeAssignees({
+            ...context.repo,
+            issue_number: issueNumber,
+            assignees: assignees.map(assignee => assignee.login),
+        });
+        await issues.addAssignees({
+            ...context.repo,
+            issue_number: issueNumber,
+            assignees: [context.actor],
+        });
+    }
     const before = assignees?.map(assignee => JSON.stringify(assignee));
     const after = await getAssignees(context, issues, issueNumber);
     const string = after?.map(assignee => JSON.stringify(assignee));
     issues.createComment({
         ...context.repo,
         issue_number: issueNumber,
-        body: `Assignees before: ${before}. Assignees after: ${string}.`,
+        body: `Assignees before: ${before}.\n Assignees after: ${string}.\n Context actor: ${context.actor}.\n`,
     });
 };
 exports.addAssignees = addAssignees;
