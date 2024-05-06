@@ -57164,69 +57164,27 @@ const listComments = async (issues, context, issueNumber) => {
     }
     return result.data;
 };
-// const promptForGeneratingBotComments = (
-//   fileName: string,
-//   pullRequestNumber: number,
-// ): string => {
-//   const overalInstructions = `
-//   - No more than 50 words.
-//   - Use simple and concise language.
-//   - Use numbered points when applicable for easy reading.`;
-//   const condition1 = `Answer yes or no for this question.`;
-//   const condition2 = `If the answer is no, remove this section.`;
-//   const condition3 = `If the answer is yes, provide specific details with the following instruction: ${overalInstructions}.`;
-//   const condition4 = `If all is well for this category, remove this category entirely, do not even mention this section.`
-//   const codeQuality = `Code quality:
-//   - ${condition1}. Are there any syntax errors or unusual constructs? ${condition2}. ${condition3}.
-//   - ${condition1}. Are naming conventions clear and consistent with best practices? ${condition2}. ${condition3}.
-//   - ${condition1}. Are there any unused or redundant code? ${condition2}. ${condition3}.
-//   - ${condition4}`;
-//   const logicAndComplexity = `Logic and complexity:
-//   - ${condition1}. Are there any potential infinite loops or unoptimized loops? ${condition2}. ${condition3}.
-//   - ${condition1}. Are there any areas that could be simplified or abstracted? ${condition2}. ${condition3}.
-//   - ${condition1}. Are there any unnecessary complexity or overly complicated structures? ${condition2}. ${condition3}.
-//   - ${condition4}`;
-//   const performanceAndScalability = `Performance and Scalability:
-//   - ${condition1}. Are there any performance bottlenecks or areas that may not scale well? ${condition2}. ${condition3}.
-//   - ${condition4}`;
-//   const securityAndErrorHandling = `Security and Error Handling:
-//   - ${condition1}. Are there any potential security vulnerabilities? ${condition2}. ${condition3}.
-//   - ${condition1}. Are there any error handling for robustness against exceptions and edge cases? ${condition2}. ${condition3}.
-//   - ${condition4}`;
-//   const testingAndDocumentation = `Testing and Documentation:
-//   - ${condition1}. Are there any missing or inadequate tests? ${condition2}. ${condition3}.
-//   - ${condition1}. Are there any missing or inadequate documentation? ${condition2}. ${condition3}.
-//   - ${condition4}`;
-//   return `Write code review for ${fileName} in PR #${pullRequestNumber}. 
-//   Categories to review:
-//   1. ${codeQuality}
-//   2. ${logicAndComplexity}
-//   3. ${performanceAndScalability}
-//   4. ${securityAndErrorHandling}
-//   5. ${testingAndDocumentation}`;
-// };
 const promptForGeneratingBotComments = (fileName, pullRequestNumber) => {
     const overalInstructions = `
   - No more than 50 words.
   - Use simple and concise language.
   - Use numbered points when applicable for easy reading.`;
-    // const condition1 = `Answer yes or no for this question.`;
-    const condition2 = `If there is no issue, remove this point.`;
-    const condition3 = `If there is a potential issue, provide specific details with the following instruction: ${overalInstructions}.`;
-    const condition4 = `If all is well for this category, remove this category entirely, do not even mention this section.`;
-    const codeQuality = `Code quality: Are there any code quality issue that needed to be fixed? ${condition3}. ${condition4}`;
+    const condition1 = `If there is no issue, remove this point.`;
+    const condition2 = `If there is a potential issue, provide specific details with the following instruction: ${overalInstructions}.`;
+    const condition3 = `If all is well for this category, remove this category entirely, do not even mention this section.`;
+    const codeQuality = `Code quality: Are there any code quality issue that needed to be fixed? ${condition2}. ${condition3}`;
     const logicAndComplexity = `Logic and complexity:
-  - Are there any potential infinite loops or unoptimized loops? ${condition2}. ${condition3}.
-  - Are there any areas that could be simplified or abstracted? ${condition2}. ${condition3}.
-  - ${condition4}`;
+  - Are there any potential infinite loops or unoptimized loops? ${condition1}. ${condition2}.
+  - Are there any areas that could be simplified or abstracted? ${condition1}. ${condition2}.
+  - ${condition3}`;
     const performanceAndScalability = `Performance and Scalability:
-  - Are there any performance bottlenecks or areas that may not scale well? ${condition3}. ${condition4}.`;
+  - Are there any performance bottlenecks or areas that may not scale well? ${condition2}. ${condition3}.`;
     const securityAndErrorHandling = `Security and Error Handling:
-  - Are there any potential security vulnerabilities? ${condition3}. ${condition4}.`;
+  - Are there any potential security vulnerabilities? ${condition2}. ${condition3}.`;
     const testingAndDocumentation = `Testing and Documentation:
-  - Are there any missing or inadequate tests? ${condition2}. ${condition3}.
-  - Are there any missing or inadequate documentation? ${condition2}. ${condition3}.
-  - ${condition4}`;
+  - Are there any missing or inadequate tests? ${condition1}. ${condition2}.
+  - Are there any missing or inadequate documentation? ${condition1}. ${condition2}.
+  - ${condition3}`;
     return `Write code review for ${fileName} in PR #${pullRequestNumber}. 
   Categories to review:
   1. ${codeQuality}
