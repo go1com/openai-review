@@ -57009,15 +57009,17 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AzureOpenAIExec = void 0;
-const { OpenAIClient, AzureKeyCredential } = __nccwpck_require__(8946);
+// const { OpenAIClient, AzureKeyCredential } = require("@azure/openai");
+const openai_1 = __nccwpck_require__(8946);
 const core = __importStar(__nccwpck_require__(2186));
 const AzureOpenAIExec = async (prompt) => {
     const key = core.getInput("azure-openai-api-key");
     const endpoint = core.getInput("azure-openai-endpoint");
-    const client = new OpenAIClient(endpoint, new AzureKeyCredential(key));
+    const client = new openai_1.OpenAIClient(endpoint, new openai_1.AzureKeyCredential(key));
     core.debug(`azure-openai-prompt: ${core.getInput("azure-openai-prompt")}`);
-    const { choices } = await client.getCompletions(core.getInput("model"), prompt, {
+    const { choices } = await client.getCompletions(core.getInput("model"), [prompt], {
         maxTokens: 256,
+        temperature: 0.5
     });
     const completion = choices[0].text;
     return completion.trim();

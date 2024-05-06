@@ -1,4 +1,5 @@
-const { OpenAIClient, AzureKeyCredential } = require("@azure/openai");
+// const { OpenAIClient, AzureKeyCredential } = require("@azure/openai");
+import { OpenAIClient, AzureKeyCredential } from "@azure/openai";
 import * as core from "@actions/core";
 
 export const AzureOpenAIExec = async (prompt: string): Promise<string> => {
@@ -10,9 +11,10 @@ export const AzureOpenAIExec = async (prompt: string): Promise<string> => {
 
   const { choices } = await client.getCompletions(
     core.getInput("model"),
-    prompt,
+    [prompt],
     {
       maxTokens: 256,
+      temperature: 0.5
     },
   );
   const completion = choices[0].text;
