@@ -57054,7 +57054,7 @@ const addAssignees = async (context, issues, issueNumber) => {
             assignees: [context.actor],
         });
     }
-    else if (assignees.filter(assignee => assignee.login === context.actor).length === 0) {
+    else {
         await issues.removeAssignees({
             ...context.repo,
             issue_number: issueNumber,
