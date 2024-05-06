@@ -57047,32 +57047,19 @@ const getAssignees = async (context, issues, issueNumber) => {
 };
 const addAssignees = async (context, issues, issueNumber) => {
     const assignees = await getAssignees(context, issues, issueNumber);
-    if (!assignees || assignees.length === 0) {
-        await issues.addAssignees({
-            ...context.repo,
-            issue_number: issueNumber,
-            assignees: [context.actor],
-        });
-    }
-    else {
+    if (assignees && assignees.length === 1 && assignees[0].login === context.actor)
+        return;
+    if (assignees && assignees.length > 0) {
         await issues.removeAssignees({
             ...context.repo,
             issue_number: issueNumber,
-            assignees: assignees.map(assignee => assignee.login),
-        });
-        await issues.addAssignees({
-            ...context.repo,
-            issue_number: issueNumber,
-            assignees: [context.actor],
+            assignees: [],
         });
     }
-    const before = assignees?.map(assignee => JSON.stringify(assignee));
-    const after = await getAssignees(context, issues, issueNumber);
-    const string = after?.map(assignee => JSON.stringify(assignee));
-    issues.createComment({
+    await issues.addAssignees({
         ...context.repo,
         issue_number: issueNumber,
-        body: `Assignees before: ${before}.\n Assignees after: ${string}.\n Context actor: ${context.actor}.\n`,
+        assignees: [context.actor],
     });
 };
 exports.addAssignees = addAssignees;
