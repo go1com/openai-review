@@ -57162,11 +57162,11 @@ const promptForGeneratingBotComments = (fileName, pullRequestNumber) => {
     const overalInstructions = `
   - No more than 50 words.
   - Use simple and concise language.
-  - Use numbered bullet points when applicable for easy reading.`;
+  - Use numbered points when applicable for easy reading.`;
     const condition1 = `Answer yes or no for this question.`;
-    const condition2 = `If the answer is no, do not write anything, move to the next question.`;
+    const condition2 = `If the answer is no, do not write anything.`;
     const condition3 = `If the answer is yes, provide specific details with the following instruction: ${overalInstructions}.`;
-    const condition4 = `If all answers are no for this category, remove this section entirely.`;
+    const condition4 = `If all is well for this category, remove this section entirely, do not even mention this section.`;
     const codeQuality = `Code quality:
   - ${condition1}. Are there any syntax errors or unusual constructs? ${condition2}. ${condition3}.
   - ${condition1}. Are naming conventions clear and consistent with best practices? ${condition2}. ${condition3}.
@@ -57239,7 +57239,7 @@ const writeBotComments = async (issues, context, issueNumber, pullRequestNumber,
             }
             continue;
         }
-        core.setOutput('text', text.replace(/(\r\n|\n|\r|'|"|```|)/gm, '')); // The output of this action is the text from OpenAI trimmed and escaped
+        core.setOutput('text', text.replace(/(\r\n|\n|\r|'|"|```)/gm, '')); // The output of this action is the text from OpenAI trimmed and escaped
         const output = `#### Jason Derulo Review - ${file.filename} 🖌
                     ${text}`;
         if (core.getInput('bot-comment', { required: false }) === 'true') {
