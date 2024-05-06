@@ -1,4 +1,3 @@
-// const { OpenAIClient, AzureKeyCredential } = require("@azure/openai");
 import { OpenAIClient, AzureKeyCredential } from "@azure/openai";
 import * as core from "@actions/core";
 

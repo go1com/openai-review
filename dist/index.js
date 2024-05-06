@@ -57009,7 +57009,6 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AzureOpenAIExec = void 0;
-// const { OpenAIClient, AzureKeyCredential } = require("@azure/openai");
 const openai_1 = __nccwpck_require__(8946);
 const core = __importStar(__nccwpck_require__(2186));
 const AzureOpenAIExec = async (prompt) => {
@@ -57166,9 +57165,9 @@ const promptForGeneratingBotComments = (fileName, pullRequestNumber) => {
   - Use simple and concise language.
   - Use numbered points when applicable for easy reading.`;
     const condition1 = `Answer yes or no for this question.`;
-    const condition2 = `If the answer is no, do not write anything.`;
+    const condition2 = `If the answer is no, remove this section.`;
     const condition3 = `If the answer is yes, provide specific details with the following instruction: ${overalInstructions}.`;
-    const condition4 = `If all is well for this category, remove this section entirely, do not even mention this section.`;
+    const condition4 = `If all is well for this category, remove this category entirely, do not even mention this section.`;
     const codeQuality = `Code quality:
   - ${condition1}. Are there any syntax errors or unusual constructs? ${condition2}. ${condition3}.
   - ${condition1}. Are naming conventions clear and consistent with best practices? ${condition2}. ${condition3}.
@@ -57475,12 +57474,12 @@ const main = async () => {
         return;
     const { octokitPullRequest, octokitIssues } = createOctokitClient();
     // 1. Assign the issue to the PR author.
-    (0, assignees_1.addAssignees)(github_1.context, octokitIssues, issueNumber);
+    await (0, assignees_1.addAssignees)(github_1.context, octokitIssues, issueNumber);
     /**
      * 2. Add reviewers to the PR.
      * @todo Assign reviewers to the addReviews method once groups/teams are set on GitHub.
      */
-    (0, reviewers_1.addReviewers)(github_1.context, octokitPullRequest, pullRequestNumber);
+    await (0, reviewers_1.addReviewers)(github_1.context, octokitPullRequest, pullRequestNumber);
     const requestBaseParams = {
         ...repo,
         pull_number: pullRequestNumber,

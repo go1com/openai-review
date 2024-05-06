@@ -36,13 +36,13 @@ const main = async (): Promise<void> => {
   const { octokitPullRequest, octokitIssues } = createOctokitClient();
 
   // 1. Assign the issue to the PR author.
-  addAssignees(context, octokitIssues, issueNumber);
+  await addAssignees(context, octokitIssues, issueNumber);
 
   /**
    * 2. Add reviewers to the PR.
    * @todo Assign reviewers to the addReviews method once groups/teams are set on GitHub.
    */
-  addReviewers(context, octokitPullRequest, pullRequestNumber);
+  await addReviewers(context, octokitPullRequest, pullRequestNumber);
 
   const requestBaseParams = {
     ...repo,

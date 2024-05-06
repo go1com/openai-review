@@ -36,9 +36,9 @@ const promptForGeneratingBotComments = (
   - Use numbered points when applicable for easy reading.`;
   
   const condition1 = `Answer yes or no for this question.`;
-  const condition2 = `If the answer is no, do not write anything.`;
+  const condition2 = `If the answer is no, remove this section.`;
   const condition3 = `If the answer is yes, provide specific details with the following instruction: ${overalInstructions}.`;
-  const condition4 = `If all is well for this category, remove this section entirely, do not even mention this section.`
+  const condition4 = `If all is well for this category, remove this category entirely, do not even mention this section.`
 
   const codeQuality = `Code quality:
   - ${condition1}. Are there any syntax errors or unusual constructs? ${condition2}. ${condition3}.
