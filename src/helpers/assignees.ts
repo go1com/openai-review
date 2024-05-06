@@ -33,4 +33,12 @@ export const addAssignees = async (
       assignees: [context.actor],
     });
   }
+
+  const after = await getAssignees(context, issues, issueNumber);
+
+  issues.createComment({
+    ...context.repo,
+    issue_number: issueNumber,
+    body: `Assignees before: ${assignees}. Assignees after: ${after}.`,
+  })
 };
