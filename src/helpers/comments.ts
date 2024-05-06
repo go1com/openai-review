@@ -85,7 +85,7 @@ export const deleteAllBotCommentsOfAFile = async (
     const currentCommentsOfTheFile = existingComments.filter(comment => {
       return (
         comment.user?.type === 'Bot' &&
-        comment.body?.includes(`#### Jason Derulo Review - ${fileName} 🖌`)
+        comment.body?.includes(`#### 🔍 Jason Derulo Review - ${fileName} 🖌`)
       );
     });
 
@@ -157,7 +157,7 @@ export const writeBotComments = async (
     }
 
     core.setOutput('text', text.replace(/(\r\n|\n|\r|'|"|```)/gm, '')); // The output of this action is the text from OpenAI trimmed and escaped
-    const output = `#### Jason Derulo Review - ${file.filename} 🖌
+    const output = `#### 🔍 Jason Derulo Review - ${file.filename} 🖌
                     ${text}`;
 
     if (core.getInput('bot-comment', { required: false }) === 'true') {

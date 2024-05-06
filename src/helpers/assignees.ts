@@ -26,13 +26,11 @@ export const addAssignees = async (
   issueNumber: number,
 ): Promise<void> => {
   const assignees = await getAssignees(context, issues, issueNumber);
-  if (!assignees) return; // It's not critical to add assignees. Should keep going with the process.
+  if (assignees && assignees.find(assignee => assignee.login === context.actor)) return;
 
-  if (!assignees.find(assignee => assignee.login === context.actor)) {
-    await issues.addAssignees({
-      ...context.repo,
-      issue_number: issueNumber,
-      assignees: [context.actor],
-    });
-  }
+  await issues.addAssignees({
+    ...context.repo,
+    issue_number: issueNumber,
+    assignees: [context.actor],
+  });
 };

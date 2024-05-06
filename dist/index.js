@@ -57047,15 +57047,13 @@ const getAssignees = async (context, issues, issueNumber) => {
 };
 const addAssignees = async (context, issues, issueNumber) => {
     const assignees = await getAssignees(context, issues, issueNumber);
-    if (!assignees)
-        return; // It's not critical to add assignees. Should keep going with the process.
-    if (!assignees.find(assignee => assignee.login === context.actor)) {
-        await issues.addAssignees({
-            ...context.repo,
-            issue_number: issueNumber,
-            assignees: [context.actor],
-        });
-    }
+    if (assignees && assignees.find(assignee => assignee.login === context.actor))
+        return;
+    await issues.addAssignees({
+        ...context.repo,
+        issue_number: issueNumber,
+        assignees: [context.actor],
+    });
 };
 exports.addAssignees = addAssignees;
 
@@ -57201,7 +57199,7 @@ const deleteAllBotCommentsOfAFile = async (issues, context, existingComments, fi
     if (core.getInput('bot-comment', { required: false }) === 'true') {
         const currentCommentsOfTheFile = existingComments.filter(comment => {
             return (comment.user?.type === 'Bot' &&
-                comment.body?.includes(`#### Jason Derulo Review - ${fileName} 🖌`));
+                comment.body?.includes(`#### 🔍 Jason Derulo Review - ${fileName} 🖌`));
         });
         if (currentCommentsOfTheFile.length > 0) {
             for (const comment of currentCommentsOfTheFile) {
@@ -57241,7 +57239,7 @@ const writeBotComments = async (issues, context, issueNumber, pullRequestNumber,
             continue;
         }
         core.setOutput('text', text.replace(/(\r\n|\n|\r|'|"|```)/gm, '')); // The output of this action is the text from OpenAI trimmed and escaped
-        const output = `#### Jason Derulo Review - ${file.filename} 🖌
+        const output = `#### 🔍 Jason Derulo Review - ${file.filename} 🖌
                     ${text}`;
         if (core.getInput('bot-comment', { required: false }) === 'true') {
             if (currentCommentsOfTheFile.length === 0) {
