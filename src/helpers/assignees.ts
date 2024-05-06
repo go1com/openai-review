@@ -29,7 +29,7 @@ export const addAssignees = async (
   if (!assignees) return; // It's not critical to add assignees. Should keep going with the process.
 
   if (!assignees.find(assignee => assignee.login === context.actor)) {
-    issues.addAssignees({
+    await issues.addAssignees({
       ...context.repo,
       issue_number: issueNumber,
       assignees: [context.actor],
