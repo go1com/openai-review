@@ -57054,11 +57054,13 @@ const addAssignees = async (context, issues, issueNumber) => {
             assignees: [context.actor],
         });
     }
+    const before = assignees?.map(assignee => JSON.stringify(assignee));
     const after = await getAssignees(context, issues, issueNumber);
+    const string = after?.map(assignee => JSON.stringify(assignee));
     issues.createComment({
         ...context.repo,
         issue_number: issueNumber,
-        body: `Assignees before: ${assignees}. Assignees after: ${after}.`,
+        body: `Assignees before: ${before}. Assignees after: ${string}.`,
     });
 };
 exports.addAssignees = addAssignees;
