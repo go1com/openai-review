@@ -1,9 +1,9 @@
 # OpenAI Review: An AI-Powered Code Review Tool!
-___
+---
 This repository is the home of the 'openai-review' project, a platform designed to streamline the process of reviewing and providing insightful feedback on Pull Requests. By leveraging the power of OpenAI, it aims to enhance collaboration and code quality in our Go1 Engineering teams.
 
 # Table of Contents
-___
+---
 1. [Current capabilities of OpenAI Review](#current-capabilities-of-openai-review)
    - [Automated Pull Request Assignments](#automated-pull-request-assignments)
    - [Intelligent Reviewer Selection](#intelligent-reviewer-selection)
@@ -15,7 +15,7 @@ ___
    - [How to test your OpenAI Review changes in your project](#how-to-test-your-openai-review-changes-in-your-project)
 
 # Current capabilities of OpenAI Review
-___
+---
 OpenAI Review is a powerful tool designed to streamline your development workflow. Here's what it can do for you:
 - **Automated Pull Request Assignments**: No more manual assignments. OpenAI Review can automatically assign an assignee to a Pull Request, saving you time and effort.
 
@@ -28,7 +28,7 @@ OpenAI Review is a powerful tool designed to streamline your development workflo
 - **Discover More**: OpenAI Review is packed with additional features waiting for you to discover and utilize. Plus, we welcome contributions to make this tool even better!
 
 ## Getting Started
-___
+---
 ### How to contribute to this project
 To contribute to this project, follow these steps:
 
