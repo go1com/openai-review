@@ -1,5 +1,9 @@
-# 🌟 GO1 OpenAI Review ![GO1Logo](./media/go1logo.png)
+<h1>
+  🌟 GO1 OpenAI Review 
+  <img src="./media/go1logo.png" alt="GO1Logo" align="right">
+</h1>
 This repository is the home of the 'openai-review' project, a tool designed to streamline the process of reviewing and providing insightful feedback on Pull Requests. By leveraging the power of OpenAI, it aims to enhance collaboration and code quality in our Go1 Engineering teams.
+
 
 # 🍀 Table of Contents
 1. [Current capabilities of OpenAI Review](#current-capabilities-of-openai-review)
@@ -12,17 +16,18 @@ This repository is the home of the 'openai-review' project, a tool designed to s
    - [How to contribute to this project](#how-to-contribute-to-this-project)
    - [How to test your OpenAI Review changes in your project](#how-to-test-your-openai-review-changes-in-your-project)
 
+
 # Current capabilities of OpenAI Review
-OpenAI Review is a powerful tool designed to streamline your development workflow. Here's what it can do for you:
-- **Automated Pull Request Assignments**: No more manual assignments. OpenAI Review can automatically assign an assignee to a Pull Request, saving you time and effort.
+OpenAI Review is a tool designed to streamline your development workflow. Here's what it can do for you:
+- **Automated Pull Request Assignments**: Automatically assign an assignee to a Pull Request.
 
-- **Intelligent Reviewer Selection**: OpenAI Review can assign reviewers to a Pull Request, ensuring the right eyes are on your code.
+- **Reviewer Selection**: Assign reviewers to a Pull Request.
 
-- **Dynamic Pull Request Descriptions**: Writing a Pull Request description can be tedious. Let OpenAI Review do it for you, generating concise and informative descriptions.
+- **Dynamic Pull Request Descriptions**: Generate concise and informative descriptions.
 
-- **Comprehensive File Reviews**: OpenAI Review provides an overall review of each changed file in your Pull Request, giving you a high-level view of the changes.
+- **Comprehensive File Reviews**: Provide an overall review of each changed file in your Pull Request.
 
-- **Discover More**: OpenAI Review is packed with additional features waiting for you to discover and utilize. Plus, we welcome contributions to make this tool even better!
+- **Explore Further**: OpenAI Review is in its exciting early stages of development. We warmly invite you to contribute and join us on this journey to shape the tool's future, enhancing its usability and making it even better. Your ideas and contributions can make a real difference!
 
 ## Getting Started
 ### How to contribute to this project
@@ -74,5 +79,6 @@ jobs:
 2. When you create a new Pull Request, you will see a `PR Review` job running in your branch
 ![PR Review Screenshot](<./media/Screenshot 2024-05-07 at 8.52.09 AM.png>)
 
-
+### Project issues and brainstorming
+If you encounter any issues, or have any ideas for improvement, please create issues in [Project issues](https://github.com/go1com/openai-review/issues)
 
