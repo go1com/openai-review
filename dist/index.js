@@ -57047,15 +57047,10 @@ const getAssignees = async (context, issues, issueNumber) => {
 };
 const addAssignees = async (context, issues, issueNumber) => {
     const assignees = await getAssignees(context, issues, issueNumber);
-    if (assignees && assignees.length === 1 && assignees[0].login === context.actor)
+    if (assignees &&
+        assignees.length > 0 &&
+        assignees.some(assignee => assignee.login === context.actor))
         return;
-    if (assignees && assignees.length > 0) {
-        await issues.removeAssignees({
-            ...context.repo,
-            issue_number: issueNumber,
-            assignees: [],
-        });
-    }
     await issues.addAssignees({
         ...context.repo,
         issue_number: issueNumber,
