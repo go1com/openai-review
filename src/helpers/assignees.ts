@@ -26,15 +26,12 @@ export const addAssignees = async (
   issueNumber: number,
 ): Promise<void> => {
   const assignees = await getAssignees(context, issues, issueNumber);
-  if (assignees && assignees.length === 1 && assignees[0].login === context.actor) return;
-  
-  if (assignees && assignees.length > 0) {
-    await issues.removeAssignees({
-      ...context.repo,
-      issue_number: issueNumber,
-      assignees: [],
-    });
-  }
+  if (
+    assignees &&
+    assignees.length > 0 &&
+    assignees.some(assignee => assignee.login === context.actor)
+  )
+    return;
 
   await issues.addAssignees({
     ...context.repo,
