@@ -57009,22 +57009,404 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AzureOpenAIExec = void 0;
-const { OpenAIClient, AzureKeyCredential } = __nccwpck_require__(8946);
+const openai_1 = __nccwpck_require__(8946);
 const core = __importStar(__nccwpck_require__(2186));
 const AzureOpenAIExec = async (prompt) => {
     const key = core.getInput("azure-openai-api-key");
     const endpoint = core.getInput("azure-openai-endpoint");
-    const client = new OpenAIClient(endpoint, new AzureKeyCredential(key));
+    const client = new openai_1.OpenAIClient(endpoint, new openai_1.AzureKeyCredential(key));
     core.debug(`azure-openai-prompt: ${core.getInput("azure-openai-prompt")}`);
-    const { choices } = await client.getCompletions(core.getInput("model"), 
-    // core.getInput("openai-prompt"),
-    prompt, {
+    const { choices } = await client.getCompletions(core.getInput("model"), [prompt], {
         maxTokens: 256,
+        temperature: 0.5
     });
     const completion = choices[0].text;
     return completion.trim();
 };
 exports.AzureOpenAIExec = AzureOpenAIExec;
+
+
+/***/ }),
+
+/***/ 4950:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.addAssignees = void 0;
+const getAssignees = async (context, issues, issueNumber) => {
+    const result = await issues.listAssignees({
+        ...context.repo,
+        issue_number: issueNumber,
+    });
+    if (result.status !== 200) {
+        return null;
+    }
+    return result.data;
+};
+const addAssignees = async (context, issues, issueNumber) => {
+    const assignees = await getAssignees(context, issues, issueNumber);
+    if (assignees &&
+        assignees.length > 0 &&
+        assignees.some(assignee => assignee.login === context.actor))
+        return;
+    await issues.addAssignees({
+        ...context.repo,
+        issue_number: issueNumber,
+        assignees: [context.actor],
+    });
+};
+exports.addAssignees = addAssignees;
+
+
+/***/ }),
+
+/***/ 8034:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.limitLinesChanged = exports.getChangedFiles = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+const getChangedFiles = async (pullRequest, requestParams) => {
+    const result = await pullRequest.listFiles(requestParams);
+    if (result.status !== 200) {
+        core.setFailed(`The GitHub API for listing changedFiles of this Pull Requests returned ${result.status}, expected 200. `);
+        return null;
+    }
+    return result.data;
+};
+exports.getChangedFiles = getChangedFiles;
+const limitLinesChanged = (listOfFiles) => {
+    const numberOfLinesChanged = listOfFiles.reduce((total, file) => total + file.changes + file.additions + file.deletions, 0);
+    if (numberOfLinesChanged > 2048) {
+        core.setFailed(`The commit has too many changes. ` +
+            "Please submit an issue on this action's GitHub repo.");
+        return false;
+    }
+    return true;
+};
+exports.limitLinesChanged = limitLinesChanged;
+
+
+/***/ }),
+
+/***/ 4596:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.writeBotComments = exports.deleteAllBotCommentsOfAFile = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+const azure_openai_1 = __nccwpck_require__(4370);
+const listComments = async (issues, context, issueNumber) => {
+    const result = await issues.listComments({
+        ...context.repo,
+        issue_number: issueNumber,
+    });
+    if (result.status !== 200) {
+        core.setFailed(`The GitHub API for listing comments of this Pull Requests returned ${result.status}, expected 200. `);
+        return 'request failed';
+    }
+    return result.data;
+};
+const promptForGeneratingBotComments = (fileName, pullRequestNumber) => {
+    const overalInstructions = `
+  - No more than 50 words.
+  - Use simple and concise language.
+  - Use numbered points when applicable for easy reading.`;
+    const condition1 = `If there is no issue, remove this point.`;
+    const condition2 = `If there is a potential issue, provide specific details with the following instruction: ${overalInstructions}.`;
+    const condition3 = `If all is well for this category, remove this category entirely, do not even mention this section.`;
+    const codeQuality = `Code quality: Are there any code quality issue that needed to be fixed? ${condition2}. ${condition3}`;
+    const logicAndComplexity = `Logic and complexity:
+  - Are there any potential infinite loops or unoptimized loops? ${condition1}. ${condition2}.
+  - Are there any areas that could be simplified or abstracted? ${condition1}. ${condition2}.
+  - ${condition3}`;
+    const performanceAndScalability = `Performance and Scalability:
+  - Are there any performance bottlenecks or areas that may not scale well? ${condition2}. ${condition3}.`;
+    const securityAndErrorHandling = `Security and Error Handling:
+  - Are there any potential security vulnerabilities? ${condition2}. ${condition3}.`;
+    const testingAndDocumentation = `Testing and Documentation:
+  - Are there any missing or inadequate tests? ${condition1}. ${condition2}.
+  - Are there any missing or inadequate documentation? ${condition1}. ${condition2}.
+  - ${condition3}`;
+    return `Write code review for ${fileName} in PR #${pullRequestNumber}. 
+  Categories to review:
+  1. ${codeQuality}
+  2. ${logicAndComplexity}
+  3. ${performanceAndScalability}
+  4. ${securityAndErrorHandling}
+  5. ${testingAndDocumentation}`;
+};
+const deleteAllBotCommentsOfAFile = async (issues, context, existingComments, fileName) => {
+    if (core.getInput('bot-comment', { required: false }) === 'true') {
+        const currentCommentsOfTheFile = existingComments.filter(comment => {
+            return (comment.user?.type === 'Bot' &&
+                comment.body?.includes(`#### 🔍 Jason Derulo Review - ${fileName} 🖌`));
+        });
+        if (currentCommentsOfTheFile.length > 0) {
+            for (const comment of currentCommentsOfTheFile) {
+                await issues.deleteComment({
+                    ...context.repo,
+                    issue_number: context.issue.number,
+                    comment_id: comment.id,
+                });
+            }
+        }
+    }
+};
+exports.deleteAllBotCommentsOfAFile = deleteAllBotCommentsOfAFile;
+const deleteObsoleteBotCommentsOfAFile = async (issues, context, obsolleteComments) => {
+    const deletePromises = obsolleteComments.map(comment => issues.deleteComment({
+        ...context.repo,
+        issue_number: context.issue.number,
+        comment_id: comment.id,
+    }));
+    await Promise.all(deletePromises);
+};
+const writeBotComments = async (issues, context, issueNumber, pullRequestNumber, listOfFiles) => {
+    const existingComments = await listComments(issues, context, issueNumber);
+    if (typeof existingComments === 'string')
+        return;
+    for (const file of listOfFiles) {
+        const prompt = promptForGeneratingBotComments(file.filename, pullRequestNumber);
+        const text = await (0, azure_openai_1.AzureOpenAIExec)(prompt);
+        const currentCommentsOfTheFile = existingComments.filter(comment => {
+            return (comment.user?.type === 'Bot' &&
+                comment.body?.includes(`${file.filename}`));
+        });
+        if (text === '') {
+            if (currentCommentsOfTheFile.length > 0) {
+                await (0, exports.deleteAllBotCommentsOfAFile)(issues, context, existingComments, file.filename);
+            }
+            continue;
+        }
+        core.setOutput('text', text.replace(/(\r\n|\n|\r|'|"|```)/gm, '')); // The output of this action is the text from OpenAI trimmed and escaped
+        const output = `#### 🔍 Jason Derulo Review - ${file.filename} 🖌
+                    ${text}`;
+        if (core.getInput('bot-comment', { required: false }) === 'true') {
+            if (currentCommentsOfTheFile.length === 0) {
+                await issues.createComment({
+                    issue_number: context.issue.number,
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    body: output,
+                });
+            }
+            else if (currentCommentsOfTheFile.length === 1) {
+                await issues.updateComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    comment_id: currentCommentsOfTheFile[0].id,
+                    body: output,
+                });
+            }
+            else {
+                await issues.updateComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    comment_id: currentCommentsOfTheFile[0].id,
+                    body: output,
+                });
+                currentCommentsOfTheFile.shift();
+                await deleteObsoleteBotCommentsOfAFile(issues, context, currentCommentsOfTheFile);
+            }
+        }
+    }
+};
+exports.writeBotComments = writeBotComments;
+
+
+/***/ }),
+
+/***/ 4638:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.checkEventName = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+var eventNameTypes;
+(function (eventNameTypes) {
+    eventNameTypes["PULL_REQUEST"] = "pull_request";
+})(eventNameTypes || (eventNameTypes = {}));
+const checkEventName = (context, eventName) => {
+    if (context.eventName !== eventNameTypes.PULL_REQUEST) {
+        core.setFailed(`This action only supports Pull Requests, ${eventName} events are not supported. ` +
+            "Please submit an issue on this action's GitHub repo if you believe this in correct.");
+        return false;
+    }
+    return true;
+};
+exports.checkEventName = checkEventName;
+
+
+/***/ }),
+
+/***/ 5050:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.addPullRequestDescription = exports.getPullRequest = exports.getPullRequestNumber = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+const azure_openai_1 = __nccwpck_require__(4370);
+const getPullRequestNumber = (payload) => {
+    if (!payload.pull_request?.number) {
+        core.setFailed('Unable to retrieve the pull request number. Please ensure the pull request number is valid and try again.' +
+            `Please submit an issue on this action's GitHub repo if you believe this in correct.`);
+        return null;
+    }
+    return payload.pull_request.number;
+};
+exports.getPullRequestNumber = getPullRequestNumber;
+const getPullRequest = async (pullRequestRest, params, pullRequestNumber) => {
+    const result = await pullRequestRest.get({
+        ...params,
+        headers: {
+            Accept: 'application/vnd.github+json,application/vnd.github.diff',
+        },
+    });
+    if (result.status !== 200) {
+        core.setFailed(`The GitHub API for getting pull request #${pullRequestNumber} resulted in status ${result.status}, expected 200. ` +
+            "Please submit an issue on this action's GitHub repo.");
+        return null;
+    }
+    return result.data;
+};
+exports.getPullRequest = getPullRequest;
+const addPullRequestDescription = async (pullRequestRest, pullRequestNumber, pullRequest, context, listOfFiles) => {
+    if (!pullRequest.body) {
+        const prompt = `Generate a concise description for pull request #${pullRequestNumber} in the repository ${context.repo.repo}.
+                  - The pull request includes changes in the following files: ${listOfFiles.map(file => file.filename).join(', ')}.
+                  - The description should provide a high-level overview of the changes and the purpose of the pull request.`;
+        const text = await (0, azure_openai_1.AzureOpenAIExec)(prompt);
+        core.setOutput('text', text.replace(/(\r\n|\n|\r|'|"|`|)/gm, ''));
+        await pullRequestRest.update({
+            ...context.repo,
+            pull_number: pullRequestNumber,
+            body: text,
+        });
+    }
+};
+exports.addPullRequestDescription = addPullRequestDescription;
+
+
+/***/ }),
+
+/***/ 6277:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.addReviewers = void 0;
+const addReviewers = async (context, pullRequest, pullRequestNumber) => {
+    await pullRequest.requestReviewers({
+        ...context.repo,
+        pull_number: pullRequestNumber,
+        reviewers: [],
+    });
+};
+exports.addReviewers = addReviewers;
 
 
 /***/ }),
@@ -57061,81 +57443,56 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
 const github_1 = __nccwpck_require__(5438);
 const action_1 = __nccwpck_require__(1231);
-// import { computeDiff, showColorDiff } from './diff';
-const azure_openai_1 = __nccwpck_require__(4370);
-const main = async () => {
-    if (github_1.context.eventName !== 'pull_request') {
-        core.setFailed(`This action only supports pull requests, ${github_1.context.eventName} events are not supported. ` +
-            "Please submit an issue on this action's GitHub repo if you believe this in correct.");
-        return;
-    }
-    if (github_1.context.payload.pull_request?.number === undefined) {
-        core.setFailed(`Can't get the pull request number` +
-            "Please submit an issue on this action's GitHub repo if you believe this in correct.");
-        return;
-    }
-    // Create GitHub client with the API token.
-    const octokit = new action_1.Octokit();
-    // Get the diff content of the PR.
-    const response = await octokit.rest.pulls.get({
-        ...github_1.context.repo,
-        pull_number: github_1.context.payload.pull_request?.number,
-        mediaType: {
-            format: "diff",
-        },
-    });
-    // Ensure that the request was successful.
-    if (response.status !== 200) {
-        core.setFailed(`The GitHub API for comparing the base and head commits for this ${github_1.context.eventName} event returned ${response.status}, expected 200. ` +
-            "Please submit an issue on this action's GitHub repo.");
-    }
-    // Ensure that payload sent to OpenAI is not too big.
-    // if (response.data.length > 2048) {
-    //   core.setFailed(
-    //     `The commit have too much changes. ` +
-    //     "Please submit an issue on this action's GitHub repo."
-    //   )
-    // }
-    const text = await (0, azure_openai_1.AzureOpenAIExec)(`Write a description for this git diff: \n ${response.data}`);
-    // The output of this action is the text from OpenAI trimmed and escaped
-    core.setOutput("text", text.replace(/(\r\n|\n|\r|'|"|`|)/gm, ""));
-    if (core.getInput("bot-comment", { required: false }) === "true") {
-        // 1. Retrieve existing bot comments for the PR
-        const { data: comments } = await octokit.rest.issues.listComments({
-            owner: github_1.context.repo.owner,
-            repo: github_1.context.repo.repo,
-            issue_number: github_1.context.issue.number,
-        });
-        const botComment = comments.find(comment => {
-            return comment.user?.type === 'Bot' && comment.body?.includes('Go1 OpenAI Bot Review');
-        });
-        // 2. Prepare format of the comment
-        const output = `#### Go1 OpenAI Bot Review 🖌
-
-${text}
-
-*Pusher: @${github_1.context.actor}, Action: \`${github_1.context.eventName}\`, Workflow: \`${github_1.context.workflow}\`*
-`;
-        // 3. If we have a comment, update it, otherwise create a new one
-        if (botComment) {
-            octokit.rest.issues.updateComment({
-                owner: github_1.context.repo.owner,
-                repo: github_1.context.repo.repo,
-                comment_id: botComment.id,
-                body: output
-            });
-        }
-        else {
-            octokit.rest.issues.createComment({
-                issue_number: github_1.context.issue.number,
-                owner: github_1.context.repo.owner,
-                repo: github_1.context.repo.repo,
-                body: output
-            });
-        }
-    }
+const event_name_check_1 = __nccwpck_require__(4638);
+const pull_request_1 = __nccwpck_require__(5050);
+const assignees_1 = __nccwpck_require__(4950);
+const reviewers_1 = __nccwpck_require__(6277);
+const changed_files_1 = __nccwpck_require__(8034);
+const comments_1 = __nccwpck_require__(4596);
+const createOctokitClient = () => {
+    const octokitClient = new action_1.Octokit();
+    return {
+        octokitPullRequest: octokitClient.rest.pulls,
+        octokitIssues: octokitClient.rest.issues,
+    };
 };
-main().catch((err) => {
+const main = async () => {
+    const { eventName, payload, issue: { number: issueNumber }, repo, } = github_1.context;
+    if (!(0, event_name_check_1.checkEventName)(github_1.context, eventName))
+        return;
+    const pullRequestNumber = (0, pull_request_1.getPullRequestNumber)(payload);
+    if (!pullRequestNumber)
+        return;
+    const { octokitPullRequest, octokitIssues } = createOctokitClient();
+    // 1. Assign the issue to the PR author.
+    await (0, assignees_1.addAssignees)(github_1.context, octokitIssues, issueNumber);
+    /**
+     * 2. Add reviewers to the PR.
+     * @todo Assign reviewers to the addReviews method once groups/teams are set on GitHub.
+     */
+    await (0, reviewers_1.addReviewers)(github_1.context, octokitPullRequest, pullRequestNumber);
+    const requestBaseParams = {
+        ...repo,
+        pull_number: pullRequestNumber,
+        issue_number: issueNumber,
+        mediaType: {
+            format: 'diff',
+        },
+    };
+    const pullRequest = await (0, pull_request_1.getPullRequest)(octokitPullRequest, requestBaseParams, pullRequestNumber);
+    if (!pullRequest)
+        return;
+    const listOfFiles = await (0, changed_files_1.getChangedFiles)(octokitPullRequest, requestBaseParams);
+    if (!listOfFiles)
+        return;
+    // 3. Add a description to the PR.
+    await (0, pull_request_1.addPullRequestDescription)(octokitPullRequest, pullRequestNumber, pullRequest, github_1.context, listOfFiles);
+    if (!(0, changed_files_1.limitLinesChanged)(listOfFiles))
+        return;
+    // 4. Write bot comments.
+    await (0, comments_1.writeBotComments)(octokitIssues, github_1.context, issueNumber, pullRequestNumber, listOfFiles);
+};
+main().catch(err => {
     if (err instanceof Error) {
         core.setFailed(err.message);
     }

@@ -1,104 +1,93 @@
-import * as core from "@actions/core";
-import { context } from "@actions/github";
-import { Octokit } from "@octokit/action";
-// import { computeDiff, showColorDiff } from './diff';
-import { AzureOpenAIExec } from './azure-openai';
+import * as core from '@actions/core';
+import { context } from '@actions/github';
+import { Octokit } from '@octokit/action';
+import { checkEventName } from './helpers/event-name-check';
+import {
+  addPullRequestDescription,
+  getPullRequest,
+  getPullRequestNumber,
+} from './helpers/pull-request';
+import { addAssignees } from './helpers/assignees';
+import { addReviewers } from './helpers/reviewers';
+import { getChangedFiles, limitLinesChanged } from './helpers/changed-files';
+import { writeBotComments } from './helpers/comments';
+
+const createOctokitClient = () => {
+  const octokitClient = new Octokit();
+  return {
+    octokitPullRequest: octokitClient.rest.pulls,
+    octokitIssues: octokitClient.rest.issues,
+  };
+};
 
 const main = async (): Promise<void> => {
+  const {
+    eventName,
+    payload,
+    issue: { number: issueNumber },
+    repo,
+  } = context;
 
-  if (context.eventName !== 'pull_request') {
-    core.setFailed(
-      `This action only supports pull requests, ${context.eventName} events are not supported. ` +
-      "Please submit an issue on this action's GitHub repo if you believe this in correct."
-    )
-    return;
-  }
+  if (!checkEventName(context, eventName)) return;
 
-  if (context.payload.pull_request?.number === undefined) {
-    core.setFailed(
-      `Can't get the pull request number` +
-      "Please submit an issue on this action's GitHub repo if you believe this in correct."
-    )
-    return;
-  }
+  const pullRequestNumber = getPullRequestNumber(payload);
+  if (!pullRequestNumber) return;
 
-  // Create GitHub client with the API token.
-  const octokit = new Octokit();
-  // Get the diff content of the PR.
-  const response = await octokit.rest.pulls.get({
-    ...context.repo,
-    pull_number: context.payload.pull_request?.number,
+  const { octokitPullRequest, octokitIssues } = createOctokitClient();
+
+  // 1. Assign the issue to the PR author.
+  await addAssignees(context, octokitIssues, issueNumber);
+
+  /**
+   * 2. Add reviewers to the PR.
+   * @todo Assign reviewers to the addReviews method once groups/teams are set on GitHub.
+   */
+  await addReviewers(context, octokitPullRequest, pullRequestNumber);
+
+  const requestBaseParams = {
+    ...repo,
+    pull_number: pullRequestNumber,
+    issue_number: issueNumber,
     mediaType: {
-      format: "diff",
+      format: 'diff',
     },
-  });
-  // Ensure that the request was successful.
-  if (response.status !== 200) {
-    core.setFailed(
-      `The GitHub API for comparing the base and head commits for this ${context.eventName} event returned ${response.status}, expected 200. ` +
-      "Please submit an issue on this action's GitHub repo."
-    )
-  }
+  };
 
-  // Ensure that payload sent to OpenAI is not too big.
-  // if (response.data.length > 2048) {
-  //   core.setFailed(
-  //     `The commit have too much changes. ` +
-  //     "Please submit an issue on this action's GitHub repo."
-  //   )
-  // }
+  const pullRequest = await getPullRequest(
+    octokitPullRequest,
+    requestBaseParams,
+    pullRequestNumber,
+  );
+  if (!pullRequest) return;
 
-  const prompt =
-    `You are a bot explains the changes from the result of
-    ${response.data}
-    that user given. comment message should be a multiple lines based on the given git diff changes without mentioning itself`;
+  const listOfFiles = await getChangedFiles(
+    octokitPullRequest,
+    requestBaseParams,
+  );
+  if (!listOfFiles) return;
 
-  // const text = await AzureOpenAIExec(`Write a description for this git diff: \n ${response.data}`);
-  const text = await AzureOpenAIExec(prompt);
-  // The output of this action is the text from OpenAI trimmed and escaped
-  core.setOutput(
-    "text",
-    text.replace(/(\r\n|\n|\r|'|"|`|)/gm, ""),
+  // 3. Add a description to the PR.
+  await addPullRequestDescription(
+    octokitPullRequest,
+    pullRequestNumber,
+    pullRequest,
+    context,
+    listOfFiles,
   );
 
-  if (core.getInput("bot-comment", { required: false }) === "true") {
-    // 1. Retrieve existing bot comments for the PR
-    const { data: comments } = await octokit.rest.issues.listComments({
-      owner: context.repo.owner,
-      repo: context.repo.repo,
-      issue_number: context.issue.number,
-    })
-    const botComment = comments.find(comment => {
-      return comment.user?.type === 'Bot' && comment.body?.includes('Go1 OpenAI Bot Review')
-    })
-    // 2. Prepare format of the comment
-    const output = `#### Go1 OpenAI Bot Review 🖌
+  if (!limitLinesChanged(listOfFiles)) return;
 
-${text}
+  // 4. Write bot comments.
+  await writeBotComments(
+    octokitIssues,
+    context,
+    issueNumber,
+    pullRequestNumber,
+    listOfFiles,
+  );
+};
 
-*Pusher: @${context.actor}, Action: \`${context.eventName}\`, Workflow: \`${context.workflow}\`*
-`;
-
-    // 3. If we have a comment, update it, otherwise create a new one
-    if (botComment) {
-      octokit.rest.issues.updateComment({
-        owner: context.repo.owner,
-        repo: context.repo.repo,
-        comment_id: botComment.id,
-        body: output
-      })
-    } else {
-      octokit.rest.issues.createComment({
-        issue_number: context.issue.number,
-        owner: context.repo.owner,
-        repo: context.repo.repo,
-        body: output
-      })
-    }
-  }
-}
-
-main().catch((err) => {
+main().catch(err => {
   if (err instanceof Error) {
     core.setFailed(err.message);
   }
