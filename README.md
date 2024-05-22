@@ -2,7 +2,7 @@
   🌟 GO1 OpenAI Review 
   <img src="./media/go1logo.png" alt="GO1Logo" align="right">
 </h1>
-This repository is the home of the 'openai-review' project, a tool designed to streamline the process of reviewing and providing insightful feedback on Pull Requests. By leveraging the power of OpenAI, it aims to enhance collaboration and code quality in our Go1 Engineering teams.
+This repository is the home of the 'openai-review' project, a tool designed to streamline the process of reviewing and providing insightful feedback on Pull Requests. By leveraging the power of OpenAI, it aims to enhance collaboration and code quality in our Go1 Engineering teams with the possibility to open source in the future.
 
 🙏 OpenAI Review is in its exciting early stages of development. We warmly invite you to contribute and join us on this journey to shape the tool's future, enhancing its usability and making it even better. Your ideas and contributions can make a real difference! 🙏
 
@@ -49,7 +49,7 @@ To make code changes to this project, follow these steps:
 
 To use OpenAI Review in your project, follow these steps:
 
-1. From `.github/workflows` in your project repository, create a `pr-review.yml` file with the following codes:
+1. From `.github/workflows` in your project repository, create a new file for the code review job. Here is the sample code:
 
 ```
 name: "PR Review"
@@ -83,6 +83,8 @@ jobs:
         echo  "${{ steps.openai.outputs.text}}"
 ```
 
-2. When you create a new Pull Request, you will see a `PR Review` job running in your branch
+2. Add `AZURE_OPENAI_API_KEY` and `AZURE_OPENAI_ENDPOINT` environment secrets to your project
+
+3. When you create a new Pull Request, you will see a `PR Review` job running in your branch
 
 ![PR Review Screenshot](<./media/Screenshot 2024-05-07 at 8.52.09 AM.png>)
