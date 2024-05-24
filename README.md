@@ -42,8 +42,9 @@ We are working on finding the right owner for this project. Meanwhile, code revi
 
 ## 🧐 Project issues and brainstorming
 
-- You can find open issues in [Project issues](https://github.com/go1com/openai-review/issues) to start working on.
-- If you encounter any issues, or have any ideas for improvement, please create issues in [Project issues](https://github.com/go1com/openai-review/issues)
+- Project document can be found in [Project Confluence Space](https://go1web.atlassian.net/wiki/spaces/ACR/overview)
+- You can find open tickets in [Project Backlog](https://go1web.atlassian.net/jira/software/projects/ACR/boards/1635/backlog) to start working on.
+- If you encounter any issues, or have any ideas for improvement, please create tickets with us in [Project Backlog](https://go1web.atlassian.net/jira/software/projects/ACR/boards/1635/backlog)
 
 <br>
 
