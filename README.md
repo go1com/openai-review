@@ -65,8 +65,8 @@ To make code changes to this project, follow these steps:
 
 To use OpenAI Review in your project, follow these steps:
 
-1. Request for Azure OpenAI key and endpoint.
-2. Create environment secret/variable in your project. In the following sample code, we use`secrets.AZURE_OPENAI_API_KEY` and`vars.AZURE_OPENAI_ENDPOINT` .
+1. Request for Azure OpenAI key and endpoint access.
+2. Create environment secret/variable for the Azure OpenAI key and endpoint in your project. In the following sample code, we use`secrets.AZURE_OPENAI_API_KEY` and`vars.AZURE_OPENAI_ENDPOINT` .
 3. From `.github/workflows` in your project repository, create a new file for the code review job. Here is the sample code:
 
 ```
