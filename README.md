@@ -94,7 +94,7 @@ jobs:
       if: github.event_name == 'pull_request'
       id: openai
       with:
-        azure-openai-api-key: ${{ env.AZURE_OPENAI_API_KEY }}
+        azure-openai-api-key: ${{ secrets.AZURE_OPENAI_API_KEY }}
         azure-openai-endpoint: ${{ env.AZURE_OPENAI_ENDPOINT }}
         bot-comment: true
     - name: Print
