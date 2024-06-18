@@ -14,7 +14,7 @@ inputs:
   model:
     description: 'The model to use'
     required: false
-    default: 'gpt-35-turbo-instruct'
+    default: 'gpt-4o'
   bot-comment:
     description: 'Bot comment on the Pull Request'
     required: false

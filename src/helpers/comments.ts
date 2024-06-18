@@ -76,7 +76,7 @@ export const deleteAllBotCommentsOfAFile = async (
     const currentCommentsOfTheFile = existingComments.filter(comment => {
       return (
         comment.user?.type === 'Bot' &&
-        comment.body?.includes(`#### 🔍 Jason Derulo Review - ${fileName} 🖌`)
+        comment.body?.includes(`#### 🔍 Harry Potter Review - ${fileName} 🖌`)
       );
     });
 
