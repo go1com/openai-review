@@ -101,6 +101,7 @@ jobs:
       run: |
         echo  "${{ steps.openai.outputs.text}}"
 ```
+![Tutorial](<./media/demo.mp4>)
 
 4. When you create a new Pull Request, you will see a `PR Review` job running in your branch
 
