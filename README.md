@@ -101,7 +101,9 @@ jobs:
       run: |
         echo  "${{ steps.openai.outputs.text}}"
 ```
-![Tutorial](<./media/demo.mp4>)
+
+You can follow along with [this tutorial][1] as well 
+[1]: https://www.loom.com/share/7dfceb0d1ea747ebbe610202c5ee9ed7 "this tutorial"
 
 4. When you create a new Pull Request, you will see a `PR Review` job running in your branch
 
