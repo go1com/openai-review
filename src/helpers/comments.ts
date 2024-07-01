@@ -62,8 +62,7 @@ const promptForGeneratingBotComments = (
   1. ${codeQuality}
   2. ${logicAndComplexity}
   3. ${performanceAndScalability}
-  4. ${securityAndErrorHandling}
-  5. ${testingAndDocumentation}`;
+  4. ${securityAndErrorHandling}`;
 };
 
 export const deleteAllBotCommentsOfAFile = async (
